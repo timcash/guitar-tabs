@@ -1,10 +1,10 @@
-# 🎸 Guitar Tab Master
+# Guitar Tab Master
 
 ![App Screenshot](screenshot.png)
 
 A high-fidelity, interactive guitar practice application designed to help you master songs like "The Wellerman" and "House of the Rising Sun". This trainer features a full-width horizontal fretboard, real-time note synthesis, and a dynamic "Note Stream" roadmap.
 
-## ✨ Features
+## Features
 
 - **Dynamic Horizontal Fretboard**: Spans your entire screen for maximum visibility.
 - **Visual Roadmap**: 
@@ -18,7 +18,7 @@ A high-fidelity, interactive guitar practice application designed to help you ma
 - **Full Orientation Control**: Flip the board Left/Right (Handedness) or Up/Down (Player's View vs. Tab View).
 - **Song Library**: Switch between different song scripts instantly.
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -46,13 +46,13 @@ A high-fidelity, interactive guitar practice application designed to help you ma
 4. **Open your browser:**
    Navigate to [http://localhost:5173/](http://localhost:5173/)
 
-## 🛠️ Built With
+## Built With
 
 - **Vite** - Lightning fast build tool.
 - **TypeScript** - For robust, type-safe logic.
 - **Web Audio API** - For real-time guitar note synthesis.
 - **SVG & CSS Grid** - For a responsive, hardware-accelerated UI.
 
-## 📄 License
+## License
 
 This project is open-source and available under the MIT License.
