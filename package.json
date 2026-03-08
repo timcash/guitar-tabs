@@ -5,14 +5,26 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "capture:screenshots": "cd tests && go run capture_views.go",
+    "test": "vitest run",
+    "test:view": "vitest run src/viewFraming.test.ts src/viewFraming.report.test.ts",
+    "test:hand": "vitest run src/handGeometry.test.ts",
+    "test:ui": "cd tests && go run .",
+    "test:ui:headed": "cd tests && HEADED=1 go run .",
+    "test:all": "npm run test && npm run test:ui",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "devDependencies": {
     "typescript": "~5.9.3",
-    "vite": "^8.0.0-beta.13"
+    "vite": "^8.0.0-beta.13",
+    "vitest": "^4.0.18"
   },
   "overrides": {
     "vite": "^8.0.0-beta.13"
+  },
+  "dependencies": {
+    "@types/three": "^0.183.1",
+    "three": "^0.183.2"
   }
 }

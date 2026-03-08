@@ -1,16 +1,19 @@
-import type { Chord, ScriptItem } from './types';
+import type { ChordDefinition, SongScriptItem, SongData } from './types';
 
-export const chordLibrary: Record<string, Chord> = {
-  'Am': { name: 'Am', positions: [{ string: 2, fret: 1, finger: 1 }, { string: 4, fret: 2, finger: 2 }, { string: 3, fret: 2, finger: 3 }], pluckPattern: [5, 4, 3, 2, 3, 4] },
-  'Dm': { name: 'Dm', positions: [{ string: 1, fret: 1, finger: 1 }, { string: 3, fret: 2, finger: 2 }, { string: 2, fret: 3, finger: 3 }], pluckPattern: [4, 3, 2, 1, 2, 3] },
-  'C': { name: 'C', positions: [{ string: 2, fret: 1, finger: 1 }, { string: 4, fret: 2, finger: 2 }, { string: 5, fret: 3, finger: 3 }], pluckPattern: [5, 4, 3, 2, 3, 4] },
-  'F': { name: 'F', positions: [{ string: 1, fret: 1, finger: 1 }, { string: 2, fret: 1, finger: 1 }, { string: 3, fret: 2, finger: 2 }, { string: 4, fret: 3, finger: 3 }], pluckPattern: [4, 3, 2, 1, 2, 3] },
-  'E': { name: 'E', positions: [{ string: 3, fret: 1, finger: 1 }, { string: 5, fret: 2, finger: 2 }, { string: 4, fret: 2, finger: 3 }], pluckPattern: [6, 5, 4, 3, 4, 5] },
-  'G': { name: 'G', positions: [{ string: 5, fret: 2, finger: 1 }, { string: 6, fret: 3, finger: 2 }, { string: 1, fret: 3, finger: 3 }], pluckPattern: [6, 5, 4, 3, 4, 5] },
-  'D': { name: 'D', positions: [{ string: 3, fret: 2, finger: 1 }, { string: 1, fret: 2, finger: 2 }, { string: 2, fret: 3, finger: 3 }], pluckPattern: [4, 3, 2, 1, 2, 3] }
+/**
+ * Standard chord shapes with finger positions (Voicing) and arpeggio patterns.
+ */
+export const chordLibrary: Record<string, ChordDefinition> = {
+  'Am': { name: 'Am', voicing: [{ string: 2, fret: 1, finger: 1 }, { string: 4, fret: 2, finger: 2 }, { string: 3, fret: 2, finger: 3 }], arpeggioPattern: [5, 4, 3, 2, 3, 4] },
+  'Dm': { name: 'Dm', voicing: [{ string: 1, fret: 1, finger: 1 }, { string: 3, fret: 2, finger: 2 }, { string: 2, fret: 3, finger: 3 }], arpeggioPattern: [4, 3, 2, 1, 2, 3] },
+  'C': { name: 'C', voicing: [{ string: 2, fret: 1, finger: 1 }, { string: 4, fret: 2, finger: 2 }, { string: 5, fret: 3, finger: 3 }], arpeggioPattern: [5, 4, 3, 2, 3, 4] },
+  'F': { name: 'F', voicing: [{ string: 1, fret: 1, finger: 1 }, { string: 2, fret: 1, finger: 1 }, { string: 3, fret: 2, finger: 2 }, { string: 4, fret: 3, finger: 3 }], arpeggioPattern: [4, 3, 2, 1, 2, 3] },
+  'E': { name: 'E', voicing: [{ string: 3, fret: 1, finger: 1 }, { string: 5, fret: 2, finger: 2 }, { string: 4, fret: 2, finger: 3 }], arpeggioPattern: [6, 5, 4, 3, 4, 5] },
+  'G': { name: 'G', voicing: [{ string: 5, fret: 2, finger: 1 }, { string: 6, fret: 3, finger: 2 }, { string: 1, fret: 3, finger: 3 }], arpeggioPattern: [6, 5, 4, 3, 4, 5] },
+  'D': { name: 'D', voicing: [{ string: 3, fret: 2, finger: 1 }, { string: 1, fret: 2, finger: 2 }, { string: 2, fret: 3, finger: 3 }], arpeggioPattern: [4, 3, 2, 1, 2, 3] }
 };
 
-export const wellermanScript: ScriptItem[] = [
+export const wellermanScript: SongScriptItem[] = [
   { chord: 'Am', lyrics: "There once was a ship", sub: "that put to sea" },
   { chord: 'Am', lyrics: "There once was a ship", sub: "that put to sea" },
   { chord: 'Dm', lyrics: "The name of the ship", sub: "was the Billy of Tea" },
@@ -25,7 +28,7 @@ export const wellermanScript: ScriptItem[] = [
   { chord: 'Am', lyrics: "One day when the tonguin' is done", sub: "we'll take our leave..." }
 ];
 
-export const houseOfRisingSunScript: ScriptItem[] = [
+export const houseOfRisingSunScript: SongScriptItem[] = [
   { chord: 'Am', lyrics: "There is a house", sub: "in New Orleans" },
   { chord: 'C', lyrics: "There is a house", sub: "in New Orleans" },
   { chord: 'D', lyrics: "They call the Rising Sun", sub: "" },
@@ -36,7 +39,7 @@ export const houseOfRisingSunScript: ScriptItem[] = [
   { chord: 'E', lyrics: "And God, I know I'm one", sub: "" }
 ];
 
-export const songs = [
+export const songs: SongData[] = [
   { id: 'wellerman', name: 'The Wellerman', script: wellermanScript },
   { id: 'rising-sun', name: 'House of the Rising Sun', script: houseOfRisingSunScript }
 ];
