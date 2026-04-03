@@ -1,4 +1,5 @@
 import { marked } from 'marked';
+import { buildAppPath } from '../appRoutes';
 import readmeMarkdown from '../../README.md?raw';
 
 const readmeDocAssets = import.meta.glob('../../docs/**/*.{png,jpg,jpeg,gif,svg,webp,avif}', {
@@ -82,20 +83,20 @@ export class ReadmePreviewPage {
     }
 
     if (url.startsWith('/')) {
-      return url;
+      return buildAppPath(url);
     }
 
     const normalized = url.replace(/\\/g, '/').replace(/^\.\//, '');
 
     if (normalized.toLowerCase() === 'readme.md') {
-      return '/readme';
+      return buildAppPath('/readme');
     }
 
     if (normalized.startsWith('public/')) {
-      return `/${normalized.slice('public/'.length)}`;
+      return buildAppPath(`/${normalized.slice('public/'.length)}`);
     }
 
-    return readmeAssetManifest[normalized] ?? `/${normalized}`;
+    return readmeAssetManifest[normalized] ?? buildAppPath(`/${normalized}`);
   }
 }
 

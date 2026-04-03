@@ -31,6 +31,9 @@ export class CodexTerminalView {
   private promptBadge: HTMLSpanElement | null = null;
   private bridgeValue: HTMLParagraphElement | null = null;
   private connectButton: HTMLButtonElement | null = null;
+  private restartButton: HTMLButtonElement | null = null;
+  private interruptButton: HTMLButtonElement | null = null;
+  private clearButton: HTMLButtonElement | null = null;
 
   constructor(root: HTMLDivElement, callbacks: CodexTerminalViewCallbacks) {
     this.root = root;
@@ -64,6 +67,9 @@ export class CodexTerminalView {
     this.promptBadge = this.root.querySelector<HTMLSpanElement>('.codex-prompt-badge');
     this.bridgeValue = this.root.querySelector<HTMLParagraphElement>('[data-codex-bridge]');
     this.connectButton = this.root.querySelector<HTMLButtonElement>('[data-codex-connect]');
+    this.restartButton = this.root.querySelector<HTMLButtonElement>('[data-codex-restart]');
+    this.interruptButton = this.root.querySelector<HTMLButtonElement>('[data-codex-interrupt]');
+    this.clearButton = this.root.querySelector<HTMLButtonElement>('[data-codex-clear]');
     this.terminalHost = this.root.querySelector<HTMLDivElement>('[data-codex-terminal]');
 
     this.root.querySelector<HTMLButtonElement>('[data-codex-connect]')?.addEventListener('click', this.callbacks.onConnect);
@@ -166,6 +172,35 @@ export class CodexTerminalView {
     }
 
     this.bridgeValue.textContent = `${health.executablePath ?? 'codex'} on ${health.platform}`;
+  }
+
+  public setTerminalInputEnabled(isEnabled: boolean) {
+    if (this.terminal) {
+      this.terminal.options.disableStdin = !isEnabled;
+    }
+  }
+
+  public setBridgeActionAvailability(options: {
+    canConnect: boolean;
+    canRestart: boolean;
+    canInterrupt: boolean;
+    canClear?: boolean;
+  }) {
+    if (this.connectButton) {
+      this.connectButton.disabled = !options.canConnect;
+    }
+
+    if (this.restartButton) {
+      this.restartButton.disabled = !options.canRestart;
+    }
+
+    if (this.interruptButton) {
+      this.interruptButton.disabled = !options.canInterrupt;
+    }
+
+    if (this.clearButton && options.canClear !== undefined) {
+      this.clearButton.disabled = !options.canClear;
+    }
   }
 
   private mountTerminal() {

@@ -4,6 +4,8 @@ import { parseCodexRouteState } from './CodexRouteState';
 import { CodexTerminalView } from './CodexTerminalView';
 
 const SESSION_STORAGE_KEY = 'guitar-tabs.codex.session-id';
+const IS_CODEX_STATIC_OFFLINE =
+  import.meta.env.VITE_CODEX_OFFLINE === '1' || import.meta.env.VITE_CODEX_OFFLINE === 'true';
 
 export class CodexTerminalPage {
   private readonly routeState = parseCodexRouteState(window.location.search);
@@ -32,8 +34,30 @@ export class CodexTerminalPage {
   public async render() {
     this.view.render();
     this.view.setSessionMeta(this.sessionId, window.location.origin, 'Waiting for Codex bridge...');
-    this.view.setConnectionState('starting', 'Preparing a browser terminal for the local Codex CLI.');
+    this.view.setConnectionState(
+      IS_CODEX_STATIC_OFFLINE ? 'disconnected' : 'starting',
+      IS_CODEX_STATIC_OFFLINE
+        ? 'Codex is offline in this static GitHub Pages build.'
+        : 'Preparing a browser terminal for the local Codex CLI.'
+    );
     this.applyInitialPromptState();
+    this.view.setBridgeActionAvailability({
+      canConnect: !IS_CODEX_STATIC_OFFLINE,
+      canRestart: !IS_CODEX_STATIC_OFFLINE,
+      canInterrupt: !IS_CODEX_STATIC_OFFLINE,
+      canClear: true
+    });
+    this.view.setTerminalInputEnabled(!IS_CODEX_STATIC_OFFLINE);
+
+    if (IS_CODEX_STATIC_OFFLINE) {
+      this.view.setSessionMeta(this.sessionId, 'static-site', 'OFFLINE');
+      this.view.writeln('');
+      buildOfflineMenuLines().forEach((line) => {
+        this.view.writeln(line);
+      });
+      this.view.writeln('');
+      return;
+    }
 
     window.addEventListener('beforeunload', this.handleBeforeUnload);
 
@@ -238,5 +262,15 @@ function buildHelpMenuLines() {
     '[help] /help /status /agent /new /resume are available inside Codex CLI',
     '[help] Ctrl+C interrupts the active Codex run',
     '[help] /codex?prompt=<base64> auto-sends a decoded prompt on page load'
+  ];
+}
+
+function buildOfflineMenuLines() {
+  return [
+    '[codex] OFFLINE',
+    '[help] this GitHub Pages build does not include the local Codex bridge',
+    '[help] the guitar player and /readme work as a static site',
+    '[help] /codex becomes interactive again when you run the app with the local backend bridge',
+    '[help] optional ?prompt=<base64> values are ignored while offline'
   ];
 }

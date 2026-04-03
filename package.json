@@ -17,6 +17,7 @@
     "test:all": "npm run test && npm run test:ui",
     "typecheck:server": "tsc -p tsconfig.server.json",
     "build": "npm run typecheck:server && tsc && vite build",
+    "build:pages": "node scripts/build-pages.mjs",
     "preview": "vite preview",
     "preview:codex": "npm run build && tsx server/index.ts"
   },
