@@ -8,6 +8,11 @@ const STRING_OUTPUT_LEVELS: Record<number, number> = {
   2: 0.84,
   1: 0.8
 };
+const PLUCK_ATTACK_SECONDS = 0.008;
+const PLUCK_DECAY_SECONDS = 0.78;
+const PLUCK_PEAK_GAIN = 0.3;
+const PLUCK_FLOOR_GAIN = 0.0001;
+const PLUCK_STOP_TAIL_SECONDS = 0.04;
 
 export class AudioPluckEngine {
   public readonly audioContext = new (window.AudioContext ||
@@ -42,12 +47,17 @@ export class AudioPluckEngine {
     const oscillator = this.audioContext.createOscillator();
     const envelope = this.audioContext.createGain();
     const voiceGain = this.stringVoiceGains.get(stringNum) ?? this.pluckMixGain;
+    const now = this.audioContext.currentTime;
+    const attackEnd = now + PLUCK_ATTACK_SECONDS;
+    const decayEnd = attackEnd + PLUCK_DECAY_SECONDS;
 
     oscillator.type = 'triangle';
-    oscillator.frequency.setValueAtTime(noteNameService.getFrequency(stringNum, fret), this.audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(noteNameService.getFrequency(stringNum, fret), now);
 
-    envelope.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-    envelope.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.8);
+    envelope.gain.cancelScheduledValues(now);
+    envelope.gain.setValueAtTime(PLUCK_FLOOR_GAIN, now);
+    envelope.gain.linearRampToValueAtTime(PLUCK_PEAK_GAIN, attackEnd);
+    envelope.gain.exponentialRampToValueAtTime(PLUCK_FLOOR_GAIN, decayEnd);
 
     oscillator.connect(envelope);
     envelope.connect(voiceGain);
@@ -57,8 +67,8 @@ export class AudioPluckEngine {
       envelope.disconnect();
     };
 
-    oscillator.start();
-    oscillator.stop(this.audioContext.currentTime + 0.8);
+    oscillator.start(now);
+    oscillator.stop(decayEnd + PLUCK_STOP_TAIL_SECONDS);
   }
 }
 

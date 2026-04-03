@@ -157,6 +157,11 @@ button {
   touch-action: manipulation;
 }
 
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 #playBtn {
   background: #ffffff;
   color: #000000;
@@ -219,6 +224,45 @@ button {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.install-help-card {
+  background: #0b0b0b;
+  color: #d8d8d8;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.install-help-title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.install-help-body {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.install-help-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.install-help-steps li {
+  color: #cfcfcf;
+}
+
+#installHelpCloseBtn {
+  margin-top: 4px;
 }
 
 label {

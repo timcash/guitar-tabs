@@ -5,6 +5,7 @@ import { SongSession } from '../domain/session/SongSession';
 import { calculateNoteOpacity, calculateNoteZ, calculateTimeUntilHit } from '../geometry';
 import { getAnimatedFingerPose, getPluckingFingerForString } from '../handGeometry';
 import { PlaybackTransport } from '../playback/PlaybackTransport';
+import { PwaInstallController } from '../pwa/PwaInstallController';
 import { FretboardRenderer } from '../renderer';
 import { RuntimeTestBridge, type HandTestState } from '../testing/RuntimeTestBridge';
 import type { FallingNote } from '../types';
@@ -21,6 +22,7 @@ export class GuitarTabsApp {
   private readonly playbackTransport = new PlaybackTransport();
   private readonly songSession = new SongSession(songs, chordLibrary);
   private readonly runtimeTestBridge = new RuntimeTestBridge();
+  private readonly pwaInstallController = new PwaInstallController();
 
   private isSoundEnabled = true;
   private isFlippedX = true;
@@ -40,8 +42,11 @@ export class GuitarTabsApp {
       onResetPlayback: this.resetPlayback,
       onToggleSound: this.handleToggleSound,
       onToggleFlipX: this.handleToggleFlipX,
-      onToggleCamera: this.handleToggleCamera
+      onToggleCamera: this.handleToggleCamera,
+      onInstallApp: this.handleInstallApp,
+      onDismissInstallHelp: this.handleDismissInstallHelp
     });
+    this.pwaInstallController.subscribe((state) => this.ui.setInstallUiState(state));
 
     this.songSession.loadSong(0);
     this.ui.setSelectedSongIndex(this.songSession.selectedSongIndex);
@@ -87,6 +92,14 @@ export class GuitarTabsApp {
   private readonly handleToggleCamera = () => {
     this.renderer.toggleCamera();
     this.renderCurrentFrame();
+  };
+
+  private readonly handleInstallApp = () => {
+    void this.pwaInstallController.requestInstall();
+  };
+
+  private readonly handleDismissInstallHelp = () => {
+    this.pwaInstallController.dismissHelp();
   };
 
   private readonly handleWindowResize = () => {

@@ -82,6 +82,8 @@ func main() {
 	var githubPagesServiceWorkerController bool
 	var songChanged bool
 	var tempoChanged bool
+	var installHelpVisible bool
+	var installHelpTitle string
 	var menuOpened bool
 	var menuStillOpen bool
 
@@ -130,6 +132,17 @@ func main() {
       return range.value === '132';
     })()`, &tempoChanged),
 		chromedp.Sleep(300*time.Millisecond),
+
+		fmtAction("Opening install help..."),
+		clickElement("#installBtn"),
+		chromedp.Sleep(250*time.Millisecond),
+		chromedp.Evaluate(`(() => {
+      const card = document.querySelector('#installHelp');
+      return card instanceof HTMLElement && !card.hidden;
+    })()`, &installHelpVisible),
+		chromedp.Evaluate(`document.querySelector('#installHelpTitle')?.textContent ?? ''`, &installHelpTitle),
+		clickElement("#installHelpCloseBtn"),
+		chromedp.Sleep(200*time.Millisecond),
 
 		fmtAction("Cycling camera views from menu..."),
 		clickElement("#cameraBtn"), chromedp.Sleep(250*time.Millisecond),
@@ -274,6 +287,14 @@ func main() {
 		log.Fatal("TEST FAILED: expected player tempo slider to update from the fullscreen menu")
 	}
 
+	if !installHelpVisible {
+		log.Fatal("TEST FAILED: expected install help to appear from the player menu")
+	}
+
+	if strings.TrimSpace(installHelpTitle) == "" {
+		log.Fatal("TEST FAILED: expected install help to render a title")
+	}
+
 	if !menuOpened {
 		log.Fatal("TEST FAILED: expected the player fullscreen menu to open")
 	}
@@ -325,7 +346,7 @@ func main() {
 	fmt.Println("\nSUCCESS: All UI elements and camera views exercised without errors!")
 	fmt.Printf("Validated note geometry samples: %v\n", geomZSamples[:3])
 	fmt.Printf("Validated hand runtime samples: %v\n", summarizeHandSamples(stateSamples))
-	fmt.Printf("Validated player mobile menu: viewport=%q opened=%t closed=%t songChanged=%t tempoChanged=%t\n", viewportMetaContent, menuOpened, !menuStillOpen, songChanged, tempoChanged)
+	fmt.Printf("Validated player mobile menu: viewport=%q opened=%t closed=%t songChanged=%t tempoChanged=%t installHelp=%q\n", viewportMetaContent, menuOpened, !menuStillOpen, songChanged, tempoChanged, installHelpTitle)
 	fmt.Printf("Validated PWA metadata: manifest=%q appleTouchIcon=%q appleWebAppCapable=%q\n", manifestHref, appleTouchIconHref, appleWebAppCapable)
 	fmt.Printf("Validated README route: images=%d scrollY=%.0f\n", readmeImageCount, readmeScrollY)
 	fmt.Printf("Validated Codex route: buttons=%d xterm=%d\n", codexActionCount, codexTerminalCount)

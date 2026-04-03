@@ -14,6 +14,7 @@ Mobile-first 3D guitar practice player with a built-in Codex terminal.
 
 - `/`
   - Mobile guitar player
+  - Open `MENU` and use `ADD TO HOME SCREEN` for install help or the native browser install prompt
 - `/readme`
   - Padded markdown preview of this README
 - `/codex`
@@ -31,6 +32,15 @@ Notes:
 - This is a GitHub Pages site URL, not the GitHub repository page.
 - The Pages build supports direct loads of `/`, `/readme`, and `/codex`.
 - `/codex` is intentionally offline on Pages until a hosted backend bridge exists.
+
+## Install As An App
+
+- Android and installable Chromium browsers:
+  - Open `MENU` and tap `ADD TO HOME SCREEN`
+  - If the browser supports the install prompt, Guitar Tabs will ask to install directly
+- iPhone and iPad:
+  - Open `MENU` and tap `ADD TO HOME SCREEN`
+  - Guitar Tabs shows the Safari steps: `Share` -> `Add to Home Screen`
 
 ## Domain Language
 

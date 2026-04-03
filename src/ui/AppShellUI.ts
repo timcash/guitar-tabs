@@ -1,4 +1,5 @@
 import type { SongData } from '../types';
+import type { PwaInstallUiState } from '../pwa/PwaInstallController';
 
 export interface AppShellHandlers {
   onSongSelected: (index: number) => void;
@@ -8,6 +9,8 @@ export interface AppShellHandlers {
   onToggleSound: () => void;
   onToggleFlipX: () => void;
   onToggleCamera: () => void;
+  onInstallApp: () => void;
+  onDismissInstallHelp: () => void;
 }
 
 export class AppShellUI {
@@ -26,6 +29,12 @@ export class AppShellUI {
   private readonly soundBtn: HTMLButtonElement;
   private readonly flipXBtn: HTMLButtonElement;
   private readonly cameraBtn: HTMLButtonElement;
+  private readonly installBtn: HTMLButtonElement;
+  private readonly installHelp: HTMLDivElement;
+  private readonly installHelpTitle: HTMLParagraphElement;
+  private readonly installHelpBody: HTMLParagraphElement;
+  private readonly installHelpSteps: HTMLOListElement;
+  private readonly installHelpCloseBtn: HTMLButtonElement;
   private readonly fretboardContainer: HTMLDivElement;
 
   constructor(root: HTMLDivElement, songs: SongData[]) {
@@ -46,6 +55,12 @@ export class AppShellUI {
     this.soundBtn = this.root.querySelector<HTMLButtonElement>('#soundBtn')!;
     this.flipXBtn = this.root.querySelector<HTMLButtonElement>('#flipXBtn')!;
     this.cameraBtn = this.root.querySelector<HTMLButtonElement>('#cameraBtn')!;
+    this.installBtn = this.root.querySelector<HTMLButtonElement>('#installBtn')!;
+    this.installHelp = this.root.querySelector<HTMLDivElement>('#installHelp')!;
+    this.installHelpTitle = this.root.querySelector<HTMLParagraphElement>('#installHelpTitle')!;
+    this.installHelpBody = this.root.querySelector<HTMLParagraphElement>('#installHelpBody')!;
+    this.installHelpSteps = this.root.querySelector<HTMLOListElement>('#installHelpSteps')!;
+    this.installHelpCloseBtn = this.root.querySelector<HTMLButtonElement>('#installHelpCloseBtn')!;
     this.fretboardContainer = this.root.querySelector<HTMLDivElement>('#fretboardContainer')!;
 
     this.menuBtn.addEventListener('click', this.openMenu);
@@ -60,6 +75,8 @@ export class AppShellUI {
     this.soundBtn.addEventListener('click', handlers.onToggleSound);
     this.flipXBtn.addEventListener('click', handlers.onToggleFlipX);
     this.cameraBtn.addEventListener('click', handlers.onToggleCamera);
+    this.installBtn.addEventListener('click', handlers.onInstallApp);
+    this.installHelpCloseBtn.addEventListener('click', handlers.onDismissInstallHelp);
 
     this.tempoRange.addEventListener('input', () => {
       handlers.onTempoChanged(parseInt(this.tempoRange.value, 10));
@@ -95,6 +112,15 @@ export class AppShellUI {
   public setLyrics(main: string, sub: string) {
     this.lyricMain.textContent = main;
     this.lyricSub.textContent = sub;
+  }
+
+  public setInstallUiState(state: PwaInstallUiState) {
+    this.installBtn.textContent = state.buttonLabel;
+    this.installBtn.disabled = state.buttonDisabled;
+    this.installHelp.hidden = !state.helpVisible;
+    this.installHelpTitle.textContent = state.helpTitle;
+    this.installHelpBody.textContent = state.helpBody;
+    this.installHelpSteps.innerHTML = state.helpSteps.map((step) => `<li>${step}</li>`).join('');
   }
 
   private readonly openMenu = () => {
@@ -162,6 +188,16 @@ export class AppShellUI {
                 <button id="soundBtn" class="sound-on">SOUND ON</button>
                 <button id="flipXBtn">FLIP L/R</button>
                 <button id="cameraBtn">CAMERA VIEW</button>
+                <button id="installBtn">ADD TO HOME SCREEN</button>
+              </div>
+
+              <div class="menu-group install-help" id="installHelp" hidden>
+                <div class="install-help-card">
+                  <p class="install-help-title" id="installHelpTitle">Add To Home Screen</p>
+                  <p class="install-help-body" id="installHelpBody"></p>
+                  <ol class="install-help-steps" id="installHelpSteps"></ol>
+                  <button id="installHelpCloseBtn">OK</button>
+                </div>
               </div>
             </div>
           </div>
