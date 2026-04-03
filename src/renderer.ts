@@ -3,7 +3,7 @@ import type { ChordDefinition, FallingNote } from './types';
 import { VirtualHand } from './virtualHand';
 import { ChordDisplay3D } from './chordDisplay3D';
 import { noteNameService } from './audio/NoteNameService';
-import { CAMERA_FOV_DEGREES, CAMERA_VIEWS } from './viewFraming';
+import { CAMERA_FOV_DEGREES, CAMERA_VIEWS, resolveCameraView } from './viewFraming';
 
 interface LabelTextureSpec {
   text: string;
@@ -100,11 +100,6 @@ export class FretboardRenderer {
   private readonly bridgeZ = 8;
 
   private currentViewIndex = 0;
-  private readonly cameraViews = CAMERA_VIEWS.map((view) => ({
-    name: view.name,
-    pos: new THREE.Vector3(...view.pos),
-    look: new THREE.Vector3(...view.look)
-  }));
 
   constructor(container: HTMLElement) {
     this.width = container.clientWidth;
@@ -328,13 +323,17 @@ export class FretboardRenderer {
   }
 
   private applyCameraView() {
-    const view = this.cameraViews[this.currentViewIndex];
-    this.camera.position.copy(view.pos);
-    this.camera.lookAt(view.look);
+    const aspect = this.height > 0 ? this.width / this.height : this.camera.aspect;
+    const view = resolveCameraView(CAMERA_VIEWS[this.currentViewIndex], aspect);
+
+    this.camera.position.set(...view.pos);
+    this.camera.lookAt(...view.look);
+    this.camera.updateProjectionMatrix();
+    this.camera.updateMatrixWorld();
   }
 
   public toggleCamera() {
-    this.currentViewIndex = (this.currentViewIndex + 1) % this.cameraViews.length;
+    this.currentViewIndex = (this.currentViewIndex + 1) % CAMERA_VIEWS.length;
     this.applyCameraView();
   }
 
@@ -342,7 +341,7 @@ export class FretboardRenderer {
     this.width = container.clientWidth;
     this.height = container.clientHeight;
     this.camera.aspect = this.width / this.height;
-    this.camera.updateProjectionMatrix();
+    this.applyCameraView();
     this.renderer.setSize(this.width, this.height);
   }
 
