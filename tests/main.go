@@ -16,6 +16,7 @@ import (
 
 const (
 	baseURL                = "http://localhost:5174"
+	githubPagesURL         = "https://timcash.github.io/guitar-tabs/"
 	codexRoutePromptBase64 = "L3N0YXR1cw=="
 )
 
@@ -70,6 +71,8 @@ func main() {
 	var readmeScrollY float64
 	var codexActionCount int
 	var codexTerminalCount int
+	var githubPagesTitle string
+	var githubPagesPath string
 	var songChanged bool
 	var tempoChanged bool
 	var menuOpened bool
@@ -184,6 +187,14 @@ func main() {
 		chromedp.Sleep(250*time.Millisecond),
 		chromedp.Evaluate(`window.scrollY`, &readmeScrollY),
 
+		// 9. Verify the live GitHub Pages site loads the static guitar app.
+		fmtAction("Checking live GitHub Pages site..."),
+		chromedp.Navigate(githubPagesURL),
+		chromedp.WaitVisible("#playBtn", chromedp.ByID),
+		chromedp.WaitVisible("#menuBtn", chromedp.ByID),
+		chromedp.Evaluate(`document.title`, &githubPagesTitle),
+		chromedp.Evaluate(`window.location.pathname`, &githubPagesPath),
+
 		// Final safety wait.
 		chromedp.Sleep(500*time.Millisecond),
 	)
@@ -256,12 +267,21 @@ func main() {
 		log.Fatalf("TEST FAILED: expected Codex route to mount an xterm surface, got %d", codexTerminalCount)
 	}
 
+	if !strings.Contains(strings.ToLower(githubPagesTitle), "guitar-tabs") {
+		log.Fatalf("TEST FAILED: expected GitHub Pages title to contain guitar-tabs, got %q", githubPagesTitle)
+	}
+
+	if !strings.HasPrefix(githubPagesPath, "/guitar-tabs") {
+		log.Fatalf("TEST FAILED: expected GitHub Pages path to stay under /guitar-tabs, got %q", githubPagesPath)
+	}
+
 	fmt.Println("\nSUCCESS: All UI elements and camera views exercised without errors!")
 	fmt.Printf("Validated note geometry samples: %v\n", geomZSamples[:3])
 	fmt.Printf("Validated hand runtime samples: %v\n", summarizeHandSamples(stateSamples))
 	fmt.Printf("Validated player mobile menu: viewport=%q opened=%t closed=%t songChanged=%t tempoChanged=%t\n", viewportMetaContent, menuOpened, !menuStillOpen, songChanged, tempoChanged)
 	fmt.Printf("Validated README route: images=%d scrollY=%.0f\n", readmeImageCount, readmeScrollY)
 	fmt.Printf("Validated Codex route: buttons=%d xterm=%d\n", codexActionCount, codexTerminalCount)
+	fmt.Printf("Validated GitHub Pages route: title=%q path=%q\n", githubPagesTitle, githubPagesPath)
 }
 
 func fmtAction(msg string) chromedp.Action {
