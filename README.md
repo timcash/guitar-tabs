@@ -4,20 +4,16 @@ Mobile-first 3D guitar practice player with a built-in Codex terminal.
 
 ## Recent Mobile Screenshots
 
-### Player Stage
-
-![Mobile player stage](docs/screenshots/mobile-player.png)
-
-### Fullscreen Menu
-
-![Mobile fullscreen menu](docs/screenshots/mobile-menu.png)
+| Player Stage | Fullscreen Menu | Codex Terminal |
+| --- | --- | --- |
+| ![Mobile player stage](docs/screenshots/mobile-player.png) | ![Mobile fullscreen menu](docs/screenshots/mobile-menu.png) | ![Mobile Codex terminal](docs/screenshots/mobile-codex.png) |
 
 ## Routes
 
 - `/`
   - Mobile guitar player
 - `/readme`
-  - Full-page markdown preview of this README
+  - Padded markdown preview of this README
 - `/codex`
   - Full-page `xterm.js` terminal connected to the local Codex CLI
 
@@ -36,15 +32,23 @@ Use these names when reading or changing the system:
 - `chord-fingers`
   - Left-hand chord markers placed on the fret-board
 - `next-chord-display`
-  - Current and upcoming chord display
+  - Active and incoming chord display
 - `lyrics-panel-ui`
   - The words shown over the guitar
 - `menu-ui`
   - Fullscreen mobile control menu
+- `readme-preview-ui`
+  - Markdown route used to read this README in the browser
+- `codex-terminal-ui`
+  - Browser terminal route backed by `xterm.js`
+- `codex-bridge`
+  - Local WebSocket and PTY bridge that launches the Codex CLI
 - `playback-transport`
   - Play, pause, reset, elapsed time
 - `audio-pluck`
   - Web Audio pluck synthesis
+- `pluck-burst-effects`
+  - Bridge-hit particles and floating note pop labels
 - `runtime-test-bridge`
   - Browser state published for end-to-end tests
 
@@ -58,6 +62,14 @@ Use these names when reading or changing the system:
 6. The `next-chord-display` shows what chord is active now and what is coming next.
 7. The main stage stays minimal: lyrics plus `START/PAUSE` and `MENU`.
 8. The fullscreen `menu-ui` holds song selection, tempo, reset, sound, flip, and camera controls.
+
+## Render And Audio Reuse
+
+- The `fret-board`, `chord-fingers`, `pluck-zone`, and `sliding-notes` use fixed Three.js meshes and sprite slots that are updated in place.
+- `pluck-burst-effects` are pooled, so bridge-hit particles and floating note labels are reused instead of recreated on every pluck.
+- Note-label textures are prewarmed and cached, which keeps note-name canvases out of the hot render path.
+- The `audio-pluck` system caches pitch lookup and per-string output gains so each pluck only creates the short-lived oscillator and envelope nodes it actually needs.
+- The `next-chord-display` only redraws its canvas labels when the chord text changes.
 
 ## How To Use The Guitar Player
 
@@ -78,6 +90,7 @@ GuitarTabsApp
   FretboardRenderer
   AudioPluckEngine
   RuntimeTestBridge
+  CodexTerminalPage
 ```
 
 ## File Map
@@ -93,6 +106,7 @@ src/
     CodexTerminalPage.ts
     CodexTerminalView.ts
     CodexRouteState.ts
+    CodexTerminalClient.ts
   domain/
     session/
       SongSession.ts
@@ -109,7 +123,25 @@ src/
   virtualHand.ts
   chordDisplay3D.ts
   viewFraming.ts
+server/
+  codex/
+    CodexBridgeServer.ts
+    CodexExecutableResolver.ts
+    CodexPtySession.ts
+    CodexSessionRegistry.ts
+shared/
+  codex/
+    CodexBridgeTypes.ts
 ```
+
+## Domain Notes In Code
+
+- `FallingNote` is the legacy TypeScript name for a `sliding-note`.
+- `currentChord` in older code means the active chord in the `next-chord-display`.
+- `nextChord` in older code means the incoming chord in the `next-chord-display`.
+- `rightHand` in older code maps to `picking-fingers`.
+- `leftHandMarkers` in older code maps to `chord-fingers`.
+- `rightHandMarkers` in older code maps to the `pluck-zone`.
 
 ## End-To-End Test Coverage
 
@@ -125,6 +157,12 @@ The browser smoke test covers all user-facing pages:
 - `/codex`
   - Verifies `xterm.js` mounts
   - Verifies the action buttons work
+
+The mobile screenshots at the top of this README are refreshed by `npm run test:ui`.
+
+## Local Dev
+
+`npm run dev` starts the Vite app and the local Codex bridge together. It is designed to be idempotent for local use, so rerunning it cleans up the previous managed dev processes on ports `5174` and `4176` before starting fresh ones.
 
 ## `/codex` Page
 

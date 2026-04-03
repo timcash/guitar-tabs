@@ -121,16 +121,16 @@ export class GuitarTabsApp {
     let currentIndex = fullNoteSequence.findIndex((note) => note.hitTime > loopTime) - 1;
     if (currentIndex < 0) currentIndex = fullNoteSequence.length - 1;
 
-    const currentNote = fullNoteSequence[currentIndex];
+    const activeSlidingNote = fullNoteSequence[currentIndex];
     const chordSegmentIndex = getChordSegmentIndexAtTime(chordTimeline, loopTime);
-    const currentChordSegment = chordTimeline[chordSegmentIndex];
-    const nextChordSegment = chordTimeline[(chordSegmentIndex + 1) % chordTimeline.length];
-    const chordProgress = getChordSegmentProgress(currentChordSegment, loopTime);
-    const nextChordProgress = Math.max(0, Math.min(1, (chordProgress - 0.62) / 0.38));
+    const activeChordSegment = chordTimeline[chordSegmentIndex];
+    const incomingChordSegment = chordTimeline[(chordSegmentIndex + 1) % chordTimeline.length];
+    const chordProgress = getChordSegmentProgress(activeChordSegment, loopTime);
+    const incomingChordProgress = Math.max(0, Math.min(1, (chordProgress - 0.62) / 0.38));
     const nextNoteIndex = (currentIndex + 1) % fullNoteSequence.length;
-    const upcomingNote = fullNoteSequence[nextNoteIndex];
+    const upcomingSlidingNote = fullNoteSequence[nextNoteIndex];
     const timeUntilUpcomingPluckMs = calculateTimeUntilHit(
-      upcomingNote.hitTime,
+      upcomingSlidingNote.hitTime,
       loopTime,
       totalSongDurationMs
     );
@@ -147,23 +147,23 @@ export class GuitarTabsApp {
 
     this.runtimeTestBridge.publish({
       elapsedTime,
-      activeString: currentNote.stringNum,
+      activeString: activeSlidingNote.stringNum,
       note0Z: slidingNotes.length > 0 ? Math.max(...slidingNotes.map((note) => note.z_3d)) : null,
       noteCount: slidingNotes.length,
       hand: handState
     });
 
     this.logTestState(elapsedTime, slidingNotes, handState);
-    this.ui.setLyrics(currentNote.lyrics, currentNote.sub);
+    this.ui.setLyrics(activeSlidingNote.lyrics, activeSlidingNote.sub);
 
-    const currentChordDef = chordLibrary[currentChordSegment.chordName];
+    const activeChordDefinition = chordLibrary[activeChordSegment.chordName];
     this.renderer.renderFrame(
-      currentChordDef,
-      currentChordSegment.chordName,
-      nextChordSegment.chordName,
-      nextChordProgress,
-      currentNote.stringNum,
-      upcomingNote.stringNum,
+      activeChordDefinition,
+      activeChordSegment.chordName,
+      incomingChordSegment.chordName,
+      incomingChordProgress,
+      activeSlidingNote.stringNum,
+      upcomingSlidingNote.stringNum,
       timeUntilUpcomingPluckMs,
       slidingNotes,
       this.isFlippedX,

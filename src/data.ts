@@ -1,7 +1,7 @@
 import type { ChordDefinition, SongScriptItem, SongData } from './types';
 
 /**
- * Standard chord shapes with finger positions (Voicing) and arpeggio patterns.
+ * Chord-library entries with chord-fingers and picking patterns.
  */
 export const chordLibrary: Record<string, ChordDefinition> = {
   'Am': { name: 'Am', voicing: [{ string: 2, fret: 1, finger: 1 }, { string: 4, fret: 2, finger: 2 }, { string: 3, fret: 2, finger: 3 }], arpeggioPattern: [5, 4, 3, 2, 3, 4] },

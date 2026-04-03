@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -29,8 +30,10 @@ func main() {
 	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), allocOpts...)
 	defer allocCancel()
 
-	// Create context with a longer timeout for the extended test
-	ctx, cancel := chromedp.NewContext(allocCtx)
+	browserCtx, browserCancel := chromedp.NewContext(allocCtx)
+	defer browserCancel()
+
+	ctx, cancel := context.WithTimeout(browserCtx, 90*time.Second)
 	defer cancel()
 
 	var exceptions []string
@@ -56,6 +59,11 @@ func main() {
 		fmt.Println("Running in headed mode.")
 	}
 
+	screenshotDir := filepath.Join("..", "docs", "screenshots")
+	if err := os.MkdirAll(screenshotDir, 0o755); err != nil {
+		log.Fatal(err)
+	}
+
 	var stateSamples []testState
 	var viewportMetaContent string
 	var readmeImageCount int
@@ -65,7 +73,7 @@ func main() {
 	var songChanged bool
 	var tempoChanged bool
 	var menuOpened bool
-	var menuClosed bool
+	var menuStillOpen bool
 
 	err := chromedp.Run(ctx,
 		chromedp.EmulateViewport(390, 844),
@@ -83,11 +91,12 @@ func main() {
 		captureTestState(&stateSamples),
 		chromedp.Sleep(80*time.Millisecond),
 		captureTestState(&stateSamples),
+		captureViewportScreenshot(filepath.Join(screenshotDir, "mobile-player.png")),
 
 		// 2. Open the fullscreen menu and exercise hidden controls.
 		fmtAction("Opening fullscreen menu..."),
-		chromedp.Click("#menuBtn", chromedp.ByID),
-		chromedp.WaitVisible("#cameraBtn", chromedp.ByID),
+		clickElement("#menuBtn"),
+		chromedp.WaitVisible("#menuCloseBtn", chromedp.ByID),
 		chromedp.Evaluate(`document.querySelector('.player-shell')?.classList.contains('menu-open') ?? false`, &menuOpened),
 		chromedp.Sleep(200*time.Millisecond),
 
@@ -110,19 +119,19 @@ func main() {
 		chromedp.Sleep(300*time.Millisecond),
 
 		fmtAction("Cycling camera views from menu..."),
-		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(250*time.Millisecond),
-		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(250*time.Millisecond),
-		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(250*time.Millisecond),
-		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(250*time.Millisecond),
+		clickElement("#cameraBtn"), chromedp.Sleep(250*time.Millisecond),
+		clickElement("#cameraBtn"), chromedp.Sleep(250*time.Millisecond),
+		clickElement("#cameraBtn"), chromedp.Sleep(250*time.Millisecond),
+		clickElement("#cameraBtn"), chromedp.Sleep(250*time.Millisecond),
 
 		// 3. Exercise Flip and Sound buttons.
 		fmtAction("Toggling Flip and Sound..."),
-		chromedp.Click("#flipXBtn", chromedp.ByID), chromedp.Sleep(300*time.Millisecond),
-		chromedp.Click("#soundBtn", chromedp.ByID), chromedp.Sleep(300*time.Millisecond),
-		chromedp.Click("#soundBtn", chromedp.ByID), chromedp.Sleep(300*time.Millisecond),
-		chromedp.Click("#flipXBtn", chromedp.ByID), chromedp.Sleep(300*time.Millisecond),
-		chromedp.Click("#menuCloseBtn", chromedp.ByID), chromedp.Sleep(200*time.Millisecond),
-		chromedp.Evaluate(`document.querySelector('.player-shell')?.classList.contains('menu-open') ?? false`, &menuClosed),
+		clickElement("#flipXBtn"), chromedp.Sleep(300*time.Millisecond),
+		clickElement("#soundBtn"), chromedp.Sleep(300*time.Millisecond),
+		clickElement("#soundBtn"), chromedp.Sleep(300*time.Millisecond),
+		clickElement("#flipXBtn"), chromedp.Sleep(300*time.Millisecond),
+		clickElement("#menuCloseBtn"), chromedp.Sleep(200*time.Millisecond),
+		chromedp.Evaluate(`document.querySelector('.player-shell')?.classList.contains('menu-open') ?? false`, &menuStillOpen),
 
 		// 4. Pause and resume.
 		fmtAction("Pausing..."),
@@ -136,12 +145,36 @@ func main() {
 		fmtAction("Resetting..."),
 		chromedp.Click("#menuBtn", chromedp.ByID),
 		chromedp.WaitVisible("#resetBtn", chromedp.ByID),
-		chromedp.Click("#resetBtn", chromedp.ByID),
+		clickElement("#resetBtn"),
 		chromedp.Sleep(500*time.Millisecond),
-		chromedp.Click("#menuCloseBtn", chromedp.ByID),
+		clickElement("#menuCloseBtn"),
 		chromedp.Sleep(200*time.Millisecond),
 
-		// 6. Exercise the README route with a simple scroll interaction.
+		// 6. Capture a stable fullscreen menu screenshot from a fresh player route.
+		fmtAction("Capturing mobile menu screenshot..."),
+		chromedp.Navigate(baseURL+"/"),
+		chromedp.WaitVisible("#menuBtn", chromedp.ByID),
+		clickElement("#menuBtn"),
+		chromedp.Sleep(350*time.Millisecond),
+		captureViewportScreenshot(filepath.Join(screenshotDir, "mobile-menu.png")),
+		clickElement("#menuCloseBtn"),
+		chromedp.Sleep(150*time.Millisecond),
+
+		// 7. Exercise the Codex route and capture the terminal view before loading the README.
+		fmtAction("Opening /codex..."),
+		chromedp.Navigate(baseURL+"/codex?prompt="+codexRoutePromptBase64),
+		chromedp.WaitVisible(".xterm", chromedp.ByQuery),
+		chromedp.WaitVisible("[data-codex-restart]", chromedp.ByQuery),
+		chromedp.Sleep(1500*time.Millisecond),
+		captureViewportScreenshot(filepath.Join(screenshotDir, "mobile-codex.png")),
+		chromedp.Click("[data-codex-clear]", chromedp.ByQuery),
+		chromedp.Sleep(250*time.Millisecond),
+		chromedp.Click("[data-codex-restart]", chromedp.ByQuery),
+		chromedp.Sleep(1000*time.Millisecond),
+		chromedp.Evaluate(`document.querySelectorAll('.codex-action-btn').length`, &codexActionCount),
+		chromedp.Evaluate(`document.querySelectorAll('.xterm').length`, &codexTerminalCount),
+
+		// 8. Exercise the README route with a simple scroll interaction.
 		fmtAction("Opening /readme..."),
 		chromedp.Navigate(baseURL+"/readme"),
 		chromedp.WaitVisible(".markdown-body", chromedp.ByQuery),
@@ -150,19 +183,6 @@ func main() {
 		chromedp.Evaluate(`window.scrollTo(0, document.body.scrollHeight)`, nil),
 		chromedp.Sleep(250*time.Millisecond),
 		chromedp.Evaluate(`window.scrollY`, &readmeScrollY),
-
-		// 7. Exercise the Codex route with button interactions.
-		fmtAction("Opening /codex..."),
-		chromedp.Navigate(baseURL+"/codex?prompt="+codexRoutePromptBase64),
-		chromedp.WaitVisible(".xterm", chromedp.ByQuery),
-		chromedp.WaitVisible("[data-codex-restart]", chromedp.ByQuery),
-		chromedp.Sleep(1500*time.Millisecond),
-		chromedp.Click("[data-codex-clear]", chromedp.ByQuery),
-		chromedp.Sleep(250*time.Millisecond),
-		chromedp.Click("[data-codex-restart]", chromedp.ByQuery),
-		chromedp.Sleep(1000*time.Millisecond),
-		chromedp.Evaluate(`document.querySelectorAll('.codex-action-btn').length`, &codexActionCount),
-		chromedp.Evaluate(`document.querySelectorAll('.xterm').length`, &codexTerminalCount),
 
 		// Final safety wait.
 		chromedp.Sleep(500*time.Millisecond),
@@ -216,12 +236,12 @@ func main() {
 		log.Fatal("TEST FAILED: expected the player fullscreen menu to open")
 	}
 
-	if menuClosed {
+	if menuStillOpen {
 		log.Fatal("TEST FAILED: expected the player fullscreen menu to close after tapping CLOSE")
 	}
 
-	if readmeImageCount < 1 {
-		log.Fatalf("TEST FAILED: expected README preview to render at least 1 image, got %d", readmeImageCount)
+	if readmeImageCount < 3 {
+		log.Fatalf("TEST FAILED: expected README preview to render 3 screenshots, got %d", readmeImageCount)
 	}
 
 	if readmeScrollY <= 0 {
@@ -239,7 +259,7 @@ func main() {
 	fmt.Println("\nSUCCESS: All UI elements and camera views exercised without errors!")
 	fmt.Printf("Validated note geometry samples: %v\n", geomZSamples[:3])
 	fmt.Printf("Validated hand runtime samples: %v\n", summarizeHandSamples(stateSamples))
-	fmt.Printf("Validated player mobile menu: viewport=%q opened=%t closed=%t songChanged=%t tempoChanged=%t\n", viewportMetaContent, menuOpened, !menuClosed, songChanged, tempoChanged)
+	fmt.Printf("Validated player mobile menu: viewport=%q opened=%t closed=%t songChanged=%t tempoChanged=%t\n", viewportMetaContent, menuOpened, !menuStillOpen, songChanged, tempoChanged)
 	fmt.Printf("Validated README route: images=%d scrollY=%.0f\n", readmeImageCount, readmeScrollY)
 	fmt.Printf("Validated Codex route: buttons=%d xterm=%d\n", codexActionCount, codexTerminalCount)
 }
@@ -341,4 +361,34 @@ func summarizeHandSamples(samples []testState) []string {
 		summary = append(summary, fmt.Sprintf("%s%s curl=%.2f", *sample.Hand.Finger, strconv.Itoa(*sample.Hand.String), *sample.Hand.Curl))
 	}
 	return summary
+}
+
+func captureViewportScreenshot(outputPath string) chromedp.Action {
+	return chromedp.ActionFunc(func(ctx context.Context) error {
+		var screenshot []byte
+		if err := chromedp.CaptureScreenshot(&screenshot).Do(ctx); err != nil {
+			return err
+		}
+		return os.WriteFile(outputPath, screenshot, 0o644)
+	})
+}
+
+func clickElement(selector string) chromedp.Action {
+	script := fmt.Sprintf(`(() => {
+    const element = document.querySelector(%q);
+    if (!(element instanceof HTMLElement)) return false;
+    element.click();
+    return true;
+  })()`, selector)
+
+	return chromedp.ActionFunc(func(ctx context.Context) error {
+		var clicked bool
+		if err := chromedp.Evaluate(script, &clicked).Do(ctx); err != nil {
+			return err
+		}
+		if !clicked {
+			return fmt.Errorf("expected clickable element for selector %s", selector)
+		}
+		return nil
+	})
 }

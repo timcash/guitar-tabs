@@ -21,12 +21,14 @@ const PLUCK_FINGERS: RightHandFinger[] = ['p', 'i', 'm', 'a'];
 const DISPLAY_FINGERS: DisplayFinger[] = ['p', 'i', 'm', 'a', 'c'];
 const BASE_COLOR = new THREE.Color(0x2ecc71);
 const BASE_EMISSIVE = new THREE.Color(0x145a32);
+const HIGHLIGHT_COLOR = new THREE.Color(0x7cf0a8);
 
 export class VirtualHand {
   public readonly group: THREE.Group;
 
   private readonly fingerMarkers = new Map<DisplayFinger, FingerMarker>();
   private readonly lastPluckAt = new Map<RightHandFinger, number>();
+  private readonly fingerSphereGeometry = new THREE.SphereGeometry(1, 24, 24);
   private isFlippedX = false;
 
   constructor() {
@@ -79,7 +81,7 @@ export class VirtualHand {
   private createFingerMarker(finger: DisplayFinger): FingerMarker {
     const radius = finger === 'p' ? 0.62 : finger === 'c' ? 0.4 : 0.48;
     const sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(radius, 24, 24),
+      this.fingerSphereGeometry,
       new THREE.MeshPhongMaterial({
         color: BASE_COLOR,
         emissive: BASE_EMISSIVE,
@@ -88,6 +90,7 @@ export class VirtualHand {
         opacity: finger === 'c' ? 0.72 : 0.9
       })
     );
+    sphere.scale.setScalar(radius);
 
     const label = this.createLabelSprite(finger, radius);
     const group = new THREE.Group();
@@ -139,10 +142,10 @@ export class VirtualHand {
     const emphasis = isSupportFinger ? 0.12 : anticipation * 0.45 + glow * 0.55;
     const scale = 1 + emphasis * 0.18;
 
-    marker.sphere.scale.setScalar(scale);
+    marker.sphere.scale.setScalar(marker.radius * scale);
     marker.label.scale.set(marker.radius * 1.35 * scale, marker.radius * 1.35 * scale, 1);
 
-    material.color.copy(BASE_COLOR).lerp(new THREE.Color(0x7cf0a8), emphasis * 0.6);
+    material.color.copy(BASE_COLOR).lerp(HIGHLIGHT_COLOR, emphasis * 0.6);
     material.emissive.copy(BASE_EMISSIVE).multiplyScalar(1 + emphasis * 1.8);
     material.emissiveIntensity = isSupportFinger ? 0.45 : 0.55 + emphasis * 1.2;
     material.opacity = isSupportFinger ? 0.72 : 0.88 + anticipation * 0.08 + glow * 0.04;

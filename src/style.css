@@ -43,6 +43,16 @@ body.codex-route {
   padding: 0;
 }
 
+.readme-page {
+  width: 100%;
+  box-sizing: border-box;
+  padding:
+    max(18px, env(safe-area-inset-top))
+    max(18px, env(safe-area-inset-right))
+    max(28px, env(safe-area-inset-bottom))
+    max(18px, env(safe-area-inset-left));
+}
+
 #app.codex-route-root {
   display: block;
   min-height: 100svh;
@@ -156,7 +166,7 @@ button {
   position: absolute;
   inset: 0;
   display: none;
-  background: rgba(0, 0, 0, 0.98);
+  background: #000;
   z-index: 20;
 }
 
@@ -244,9 +254,9 @@ input[type="range"]:focus-visible {
 
 .markdown-body {
   width: 100%;
-  max-width: none;
+  max-width: 1120px;
   min-height: 100vh;
-  margin: 0;
+  margin: 0 auto;
   padding: 0;
   box-sizing: border-box;
   line-height: 1.7;

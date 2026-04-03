@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -10,6 +11,8 @@ import (
 )
 
 type viewCapture struct {
+	URL           string
+	WaitSelector  string
 	Name          string
 	OpenMenu      bool
 	StartPlayback bool
@@ -34,12 +37,37 @@ func main() {
 	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), allocOpts...)
 	defer allocCancel()
 
-	ctx, cancel := chromedp.NewContext(allocCtx)
+	browserCtx, browserCancel := chromedp.NewContext(allocCtx)
+	defer browserCancel()
+
+	ctx, cancel := context.WithTimeout(browserCtx, 60*time.Second)
 	defer cancel()
 
 	captures := []viewCapture{
-		{Name: "mobile-player", OpenMenu: false, StartPlayback: true, Wait: 1400 * time.Millisecond},
-		{Name: "mobile-menu", OpenMenu: true, StartPlayback: false, Wait: 500 * time.Millisecond},
+		{
+			URL:           "http://localhost:5174/",
+			WaitSelector:  "#menuBtn",
+			Name:          "mobile-player",
+			OpenMenu:      false,
+			StartPlayback: true,
+			Wait:          1400 * time.Millisecond,
+		},
+		{
+			URL:           "http://localhost:5174/",
+			WaitSelector:  "#menuBtn",
+			Name:          "mobile-menu",
+			OpenMenu:      true,
+			StartPlayback: false,
+			Wait:          500 * time.Millisecond,
+		},
+		{
+			URL:           "http://localhost:5174/codex?prompt=L3N0YXR1cw==",
+			WaitSelector:  "[data-codex-restart]",
+			Name:          "mobile-codex",
+			OpenMenu:      false,
+			StartPlayback: false,
+			Wait:          1500 * time.Millisecond,
+		},
 	}
 
 	for _, capture := range captures {
@@ -47,9 +75,8 @@ func main() {
 
 		actions := []chromedp.Action{
 			chromedp.EmulateViewport(430, 932),
-			chromedp.Navigate("http://localhost:5174/"),
-			chromedp.WaitVisible("#playBtn", chromedp.ByID),
-			chromedp.WaitVisible("#menuBtn", chromedp.ByID),
+			chromedp.Navigate(capture.URL),
+			chromedp.WaitVisible(capture.WaitSelector, chromedp.ByQuery),
 			chromedp.Sleep(900 * time.Millisecond),
 		}
 
@@ -59,14 +86,28 @@ func main() {
 
 		if capture.OpenMenu {
 			actions = append(actions,
-				chromedp.Click("#menuBtn", chromedp.ByID),
+				clickElement("#menuBtn"),
 				chromedp.WaitVisible("#menuCloseBtn", chromedp.ByID),
+				chromedp.Evaluate(`(() => {
+          const select = document.querySelector('#songSelect');
+          if (select instanceof HTMLSelectElement && select.options.length > 1) {
+            select.value = '1';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          const range = document.querySelector('#tempoRange');
+          if (range instanceof HTMLInputElement) {
+            range.value = '132';
+            range.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          return true;
+        })()`, nil),
+				chromedp.Sleep(250*time.Millisecond),
 			)
 		}
 
 		actions = append(actions,
 			chromedp.Sleep(capture.Wait),
-			chromedp.Screenshot("#app", &screenshot, chromedp.NodeVisible, chromedp.ByID),
+			chromedp.CaptureScreenshot(&screenshot),
 		)
 
 		if err := chromedp.Run(ctx, actions...); err != nil {
@@ -77,4 +118,24 @@ func main() {
 			panic(err)
 		}
 	}
+}
+
+func clickElement(selector string) chromedp.Action {
+	script := `(() => {
+    const element = document.querySelector("` + selector + `");
+    if (!(element instanceof HTMLElement)) return false;
+    element.click();
+    return true;
+  })()`
+
+	return chromedp.ActionFunc(func(ctx context.Context) error {
+		var clicked bool
+		if err := chromedp.Evaluate(script, &clicked).Do(ctx); err != nil {
+			return err
+		}
+		if !clicked {
+			return fmt.Errorf("expected clickable element for selector %s", selector)
+		}
+		return nil
+	})
 }

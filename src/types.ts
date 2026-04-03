@@ -1,5 +1,5 @@
 /**
- * Represents a single finger's contact point on the guitar neck.
+ * Represents a single chord-finger contact point on the fret-board.
  */
 export interface FretPosition {
   /** 1-6, where 1 is High E and 6 is Low E */
@@ -11,19 +11,19 @@ export interface FretPosition {
 }
 
 /**
- * Defines a specific chord shape and its corresponding arpeggio/pluck pattern.
+ * Defines a chord-library entry with its chord-fingers and picking pattern.
  */
 export interface ChordDefinition {
   /** The name of the chord (e.g., "Am", "C") */
   name: string;
-  /** The array of fret positions for the left hand */
+  /** The chord-finger positions on the fret-board */
   voicing: FretPosition[];
-  /** The order of strings to be plucked by the right hand */
+  /** The picking-finger pluck order */
   arpeggioPattern: number[];
 }
 
 /**
- * A single segment of a song, tying a chord to specific lyrics.
+ * A single song-script segment tying a chord to lyrics.
  */
 export interface SongScriptItem {
   chord: string;
@@ -32,7 +32,7 @@ export interface SongScriptItem {
 }
 
 /**
- * Metadata for an entire song.
+ * Metadata for a song-catalog entry.
  */
 export interface SongData {
   id: string;
@@ -41,7 +41,7 @@ export interface SongData {
 }
 
 /**
- * Data for a single falling note in the 3D track.
+ * Legacy type name for one sliding-note event in the 3D track.
  */
 export interface FallingNote {
   noteName: string;

@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "vite",
     "dev:bridge": "tsx watch server/index.ts",
-    "dev:codex": "concurrently -k -n bridge,web -c green,blue \"npm run dev:bridge\" \"npm run dev\"",
+    "dev:codex": "npm run dev",
     "capture:screenshots": "cd tests && go run capture_views.go",
     "test": "vitest run",
     "test:view": "vitest run src/viewFraming.test.ts src/viewFraming.report.test.ts",

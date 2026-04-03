@@ -30,7 +30,9 @@ export class ReadmePreviewPage {
 
     this.root.classList.add('readme-preview-root');
     this.root.innerHTML = `
-      <article class="markdown-body" id="readmeMarkdown"></article>
+      <div class="readme-page">
+        <article class="markdown-body" id="readmeMarkdown"></article>
+      </div>
     `;
 
     const markdownRoot = this.root.querySelector<HTMLElement>('#readmeMarkdown');
