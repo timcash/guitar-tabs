@@ -6,8 +6,13 @@ export function registerServiceWorker() {
   }
 
   window.addEventListener('load', () => {
+    const scope = ensureTrailingSlash(buildAppPath('/'));
     void navigator.serviceWorker.register(buildAppPath('/service-worker.js'), {
-      scope: buildAppPath('/')
+      scope
     });
   });
+}
+
+function ensureTrailingSlash(path: string) {
+  return path.endsWith('/') ? path : `${path}/`;
 }

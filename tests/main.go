@@ -79,7 +79,7 @@ func main() {
 	var githubPagesManifestHref string
 	var githubPagesAppleTouchIconHref string
 	var githubPagesAppleWebAppCapable string
-	var githubPagesServiceWorkerRegistrations int
+	var githubPagesServiceWorkerCheck livePwaServiceWorkerCheck
 	var songChanged bool
 	var tempoChanged bool
 	var menuOpened bool
@@ -209,11 +209,20 @@ func main() {
 		chromedp.Evaluate(`document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href') ?? ''`, &githubPagesAppleTouchIconHref),
 		chromedp.Evaluate(`document.querySelector('meta[name="apple-mobile-web-app-capable"]')?.getAttribute('content') ?? ''`, &githubPagesAppleWebAppCapable),
 		chromedp.Evaluate(`(async () => {
-      if (!('serviceWorker' in navigator)) return -1;
-      await navigator.serviceWorker.ready.catch(() => null);
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      return registrations.length;
-    })()`, &githubPagesServiceWorkerRegistrations),
+      if (!('serviceWorker' in navigator)) {
+        return { count: -1, error: 'serviceWorker unsupported' };
+      }
+      try {
+        await navigator.serviceWorker.ready;
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        return { count: registrations.length, error: '' };
+      } catch (error) {
+        return {
+          count: -1,
+          error: error instanceof Error ? error.message : String(error ?? 'unknown service worker error')
+        };
+      }
+    })()`, &githubPagesServiceWorkerCheck),
 
 		// Final safety wait.
 		chromedp.Sleep(500*time.Millisecond),
@@ -319,8 +328,12 @@ func main() {
 		log.Fatalf("TEST FAILED: expected GitHub Pages apple-mobile-web-app-capable=yes, got %q", githubPagesAppleWebAppCapable)
 	}
 
-	if githubPagesServiceWorkerRegistrations < 1 {
-		log.Fatalf("TEST FAILED: expected GitHub Pages service worker registration, got %d", githubPagesServiceWorkerRegistrations)
+	if githubPagesServiceWorkerCheck.Count < 1 {
+		log.Fatalf(
+			"TEST FAILED: expected GitHub Pages service worker registration, got %d (%s)",
+			githubPagesServiceWorkerCheck.Count,
+			githubPagesServiceWorkerCheck.Error,
+		)
 	}
 
 	fmt.Println("\nSUCCESS: All UI elements and camera views exercised without errors!")
@@ -337,7 +350,7 @@ func main() {
 		githubPagesManifestHref,
 		githubPagesAppleTouchIconHref,
 		githubPagesAppleWebAppCapable,
-		githubPagesServiceWorkerRegistrations,
+		githubPagesServiceWorkerCheck.Count,
 	)
 }
 
@@ -372,6 +385,11 @@ type testState struct {
 	Note0Z       *float64  `json:"note0Z"`
 	NoteCount    int       `json:"noteCount"`
 	Hand         handState `json:"hand"`
+}
+
+type livePwaServiceWorkerCheck struct {
+	Count int    `json:"count"`
+	Error string `json:"error"`
 }
 
 func captureTestState(samples *[]testState) chromedp.Action {
