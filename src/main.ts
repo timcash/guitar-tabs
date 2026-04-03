@@ -2,6 +2,7 @@ import './style.css';
 import { GuitarTabsApp } from './app/GuitarTabsApp';
 import { stripAppBasePath } from './appRoutes';
 import { CodexTerminalPage } from './codex/CodexTerminalPage';
+import { registerServiceWorker } from './pwa/registerServiceWorker';
 import { ReadmePreviewPage } from './ui/ReadmePreviewPage';
 
 const appRoot = document.querySelector<HTMLDivElement>('#app');
@@ -10,6 +11,7 @@ if (!appRoot) {
 }
 
 const normalizedPath = stripAppBasePath(window.location.pathname);
+registerServiceWorker();
 
 document.body.classList.remove('readme-route', 'codex-route');
 appRoot.classList.remove('readme-preview-root', 'codex-route-root');

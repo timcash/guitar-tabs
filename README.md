@@ -64,6 +64,8 @@ Use these names when reading or changing the system:
   - Bridge-hit particles and floating note pop labels
 - `runtime-test-bridge`
   - Browser state published for end-to-end tests
+- `pwa-shell`
+  - Manifest, homescreen icons, install metadata, and service worker for mobile install
 
 ## How The Guitar Works
 
@@ -91,6 +93,29 @@ Use these names when reading or changing the system:
 3. Read the lyric line at the top while the `sliding-notes` move toward the bridge.
 4. Open `MENU` when you want to change song, tempo, sound, left/right flip, or camera view.
 5. Tap `RESET` from the menu to restart the current song.
+
+## Install As An App
+
+The site is set up as a PWA so it can be added to the home screen on both Android and iPhone.
+
+Android:
+
+1. Open `https://timcash.github.io/guitar-tabs/` in Chrome.
+2. Use the browser install prompt or the browser menu.
+3. Choose `Install app` or `Add to Home screen`.
+
+iPhone:
+
+1. Open `https://timcash.github.io/guitar-tabs/` in Safari.
+2. Tap the Share button.
+3. Choose `Add to Home Screen`.
+
+PWA notes:
+
+- The installed app opens in standalone mode.
+- The app includes homescreen icons for Android and iPhone.
+- The service worker caches the app shell and common static assets for faster repeat loads and basic offline fallback.
+- The GitHub Pages build keeps `/codex` in an offline state until a hosted backend bridge exists.
 
 ## Main System Parts
 
@@ -130,12 +155,22 @@ src/
   audio/
     AudioPluckEngine.ts
     NoteNameService.ts
+  pwa/
+    registerServiceWorker.ts
   testing/
     RuntimeTestBridge.ts
   renderer.ts
   virtualHand.ts
   chordDisplay3D.ts
   viewFraming.ts
+public/
+  manifest.webmanifest
+  service-worker.js
+  apple-touch-icon.png
+  pwa-192.png
+  pwa-512.png
+  pwa-maskable-192.png
+  pwa-maskable-512.png
 server/
   codex/
     CodexBridgeServer.ts
@@ -191,7 +226,7 @@ What the workflow does:
 2. Installs dependencies with `npm ci`.
 3. Builds the site with the repo base path `/guitar-tabs/`.
 4. Forces `VITE_CODEX_OFFLINE=1` for the Pages build so `/codex` renders an offline terminal instead of trying to reach a local bridge.
-5. Publishes the `dist/` folder to GitHub Pages.
+5. Publishes the `dist/` folder to GitHub Pages, including the `pwa-shell` files.
 
 One-time GitHub setup:
 

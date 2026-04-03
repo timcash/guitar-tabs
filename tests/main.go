@@ -67,12 +67,19 @@ func main() {
 
 	var stateSamples []testState
 	var viewportMetaContent string
+	var manifestHref string
+	var appleTouchIconHref string
+	var appleWebAppCapable string
 	var readmeImageCount int
 	var readmeScrollY float64
 	var codexActionCount int
 	var codexTerminalCount int
 	var githubPagesTitle string
 	var githubPagesPath string
+	var githubPagesManifestHref string
+	var githubPagesAppleTouchIconHref string
+	var githubPagesAppleWebAppCapable string
+	var githubPagesServiceWorkerRegistrations int
 	var songChanged bool
 	var tempoChanged bool
 	var menuOpened bool
@@ -84,6 +91,9 @@ func main() {
 		chromedp.WaitVisible("#playBtn", chromedp.ByID),
 		chromedp.WaitVisible("#menuBtn", chromedp.ByID),
 		chromedp.Evaluate(`document.querySelector('meta[name="viewport"]')?.getAttribute('content') ?? ''`, &viewportMetaContent),
+		chromedp.Evaluate(`document.querySelector('link[rel="manifest"]')?.getAttribute('href') ?? ''`, &manifestHref),
+		chromedp.Evaluate(`document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href') ?? ''`, &appleTouchIconHref),
+		chromedp.Evaluate(`document.querySelector('meta[name="apple-mobile-web-app-capable"]')?.getAttribute('content') ?? ''`, &appleWebAppCapable),
 
 		// 1. Start playback from the compact stage UI.
 		fmtAction("Starting playback..."),
@@ -192,8 +202,18 @@ func main() {
 		chromedp.Navigate(githubPagesURL),
 		chromedp.WaitVisible("#playBtn", chromedp.ByID),
 		chromedp.WaitVisible("#menuBtn", chromedp.ByID),
+		chromedp.Sleep(1500*time.Millisecond),
 		chromedp.Evaluate(`document.title`, &githubPagesTitle),
 		chromedp.Evaluate(`window.location.pathname`, &githubPagesPath),
+		chromedp.Evaluate(`document.querySelector('link[rel="manifest"]')?.getAttribute('href') ?? ''`, &githubPagesManifestHref),
+		chromedp.Evaluate(`document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href') ?? ''`, &githubPagesAppleTouchIconHref),
+		chromedp.Evaluate(`document.querySelector('meta[name="apple-mobile-web-app-capable"]')?.getAttribute('content') ?? ''`, &githubPagesAppleWebAppCapable),
+		chromedp.Evaluate(`(async () => {
+      if (!('serviceWorker' in navigator)) return -1;
+      await navigator.serviceWorker.ready.catch(() => null);
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      return registrations.length;
+    })()`, &githubPagesServiceWorkerRegistrations),
 
 		// Final safety wait.
 		chromedp.Sleep(500*time.Millisecond),
@@ -233,6 +253,18 @@ func main() {
 
 	if !strings.Contains(viewportMetaContent, "viewport-fit=cover") || !strings.Contains(viewportMetaContent, "interactive-widget=resizes-content") {
 		log.Fatalf("TEST FAILED: viewport meta missing mobile settings: %q", viewportMetaContent)
+	}
+
+	if !strings.Contains(manifestHref, "manifest.webmanifest") {
+		log.Fatalf("TEST FAILED: expected manifest link on player route, got %q", manifestHref)
+	}
+
+	if !strings.Contains(appleTouchIconHref, "apple-touch-icon.png") {
+		log.Fatalf("TEST FAILED: expected apple touch icon link on player route, got %q", appleTouchIconHref)
+	}
+
+	if strings.ToLower(appleWebAppCapable) != "yes" {
+		log.Fatalf("TEST FAILED: expected apple-mobile-web-app-capable=yes, got %q", appleWebAppCapable)
 	}
 
 	if !songChanged {
@@ -275,13 +307,38 @@ func main() {
 		log.Fatalf("TEST FAILED: expected GitHub Pages path to stay under /guitar-tabs, got %q", githubPagesPath)
 	}
 
+	if !strings.Contains(githubPagesManifestHref, "manifest.webmanifest") {
+		log.Fatalf("TEST FAILED: expected GitHub Pages manifest link, got %q", githubPagesManifestHref)
+	}
+
+	if !strings.Contains(githubPagesAppleTouchIconHref, "apple-touch-icon.png") {
+		log.Fatalf("TEST FAILED: expected GitHub Pages apple touch icon link, got %q", githubPagesAppleTouchIconHref)
+	}
+
+	if strings.ToLower(githubPagesAppleWebAppCapable) != "yes" {
+		log.Fatalf("TEST FAILED: expected GitHub Pages apple-mobile-web-app-capable=yes, got %q", githubPagesAppleWebAppCapable)
+	}
+
+	if githubPagesServiceWorkerRegistrations < 1 {
+		log.Fatalf("TEST FAILED: expected GitHub Pages service worker registration, got %d", githubPagesServiceWorkerRegistrations)
+	}
+
 	fmt.Println("\nSUCCESS: All UI elements and camera views exercised without errors!")
 	fmt.Printf("Validated note geometry samples: %v\n", geomZSamples[:3])
 	fmt.Printf("Validated hand runtime samples: %v\n", summarizeHandSamples(stateSamples))
 	fmt.Printf("Validated player mobile menu: viewport=%q opened=%t closed=%t songChanged=%t tempoChanged=%t\n", viewportMetaContent, menuOpened, !menuStillOpen, songChanged, tempoChanged)
+	fmt.Printf("Validated PWA metadata: manifest=%q appleTouchIcon=%q appleWebAppCapable=%q\n", manifestHref, appleTouchIconHref, appleWebAppCapable)
 	fmt.Printf("Validated README route: images=%d scrollY=%.0f\n", readmeImageCount, readmeScrollY)
 	fmt.Printf("Validated Codex route: buttons=%d xterm=%d\n", codexActionCount, codexTerminalCount)
-	fmt.Printf("Validated GitHub Pages route: title=%q path=%q\n", githubPagesTitle, githubPagesPath)
+	fmt.Printf(
+		"Validated GitHub Pages route: title=%q path=%q manifest=%q appleTouchIcon=%q appleWebAppCapable=%q serviceWorkers=%d\n",
+		githubPagesTitle,
+		githubPagesPath,
+		githubPagesManifestHref,
+		githubPagesAppleTouchIconHref,
+		githubPagesAppleWebAppCapable,
+		githubPagesServiceWorkerRegistrations,
+	)
 }
 
 func fmtAction(msg string) chromedp.Action {
