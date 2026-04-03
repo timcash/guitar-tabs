@@ -79,7 +79,7 @@ func main() {
 	var githubPagesManifestHref string
 	var githubPagesAppleTouchIconHref string
 	var githubPagesAppleWebAppCapable string
-	var githubPagesServiceWorkerCheck livePwaServiceWorkerCheck
+	var githubPagesServiceWorkerController bool
 	var songChanged bool
 	var tempoChanged bool
 	var menuOpened bool
@@ -202,27 +202,17 @@ func main() {
 		chromedp.Navigate(githubPagesURL),
 		chromedp.WaitVisible("#playBtn", chromedp.ByID),
 		chromedp.WaitVisible("#menuBtn", chromedp.ByID),
-		chromedp.Sleep(1500*time.Millisecond),
+		chromedp.Sleep(2500*time.Millisecond),
+		chromedp.Reload(),
+		chromedp.WaitVisible("#playBtn", chromedp.ByID),
+		chromedp.WaitVisible("#menuBtn", chromedp.ByID),
+		chromedp.Sleep(800*time.Millisecond),
 		chromedp.Evaluate(`document.title`, &githubPagesTitle),
 		chromedp.Evaluate(`window.location.pathname`, &githubPagesPath),
 		chromedp.Evaluate(`document.querySelector('link[rel="manifest"]')?.getAttribute('href') ?? ''`, &githubPagesManifestHref),
 		chromedp.Evaluate(`document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href') ?? ''`, &githubPagesAppleTouchIconHref),
 		chromedp.Evaluate(`document.querySelector('meta[name="apple-mobile-web-app-capable"]')?.getAttribute('content') ?? ''`, &githubPagesAppleWebAppCapable),
-		chromedp.Evaluate(`(async () => {
-      if (!('serviceWorker' in navigator)) {
-        return { count: -1, error: 'serviceWorker unsupported' };
-      }
-      try {
-        await navigator.serviceWorker.ready;
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        return { count: registrations.length, error: '' };
-      } catch (error) {
-        return {
-          count: -1,
-          error: error instanceof Error ? error.message : String(error ?? 'unknown service worker error')
-        };
-      }
-    })()`, &githubPagesServiceWorkerCheck),
+		chromedp.Evaluate(`navigator.serviceWorker.controller !== null`, &githubPagesServiceWorkerController),
 
 		// Final safety wait.
 		chromedp.Sleep(500*time.Millisecond),
@@ -328,12 +318,8 @@ func main() {
 		log.Fatalf("TEST FAILED: expected GitHub Pages apple-mobile-web-app-capable=yes, got %q", githubPagesAppleWebAppCapable)
 	}
 
-	if githubPagesServiceWorkerCheck.Count < 1 {
-		log.Fatalf(
-			"TEST FAILED: expected GitHub Pages service worker registration, got %d (%s)",
-			githubPagesServiceWorkerCheck.Count,
-			githubPagesServiceWorkerCheck.Error,
-		)
+	if !githubPagesServiceWorkerController {
+		log.Fatal("TEST FAILED: expected GitHub Pages page to be controlled by a service worker after reload")
 	}
 
 	fmt.Println("\nSUCCESS: All UI elements and camera views exercised without errors!")
@@ -350,7 +336,7 @@ func main() {
 		githubPagesManifestHref,
 		githubPagesAppleTouchIconHref,
 		githubPagesAppleWebAppCapable,
-		githubPagesServiceWorkerCheck.Count,
+		map[bool]int{false: 0, true: 1}[githubPagesServiceWorkerController],
 	)
 }
 
@@ -385,11 +371,6 @@ type testState struct {
 	Note0Z       *float64  `json:"note0Z"`
 	NoteCount    int       `json:"noteCount"`
 	Hand         handState `json:"hand"`
-}
-
-type livePwaServiceWorkerCheck struct {
-	Count int    `json:"count"`
-	Error string `json:"error"`
 }
 
 func captureTestState(samples *[]testState) chromedp.Action {
