@@ -16,6 +16,19 @@ Mobile-first 3D guitar practice player with a built-in Codex terminal.
   - Padded markdown preview of this README
 - `/codex`
   - Full-page `xterm.js` terminal connected to the local Codex CLI
+  - In the static GitHub Pages build, this route shows `OFFLINE`
+
+## Live Site
+
+The static site is intended to publish on GitHub Pages at:
+
+- `https://timcash.github.io/guitar-tabs/`
+
+Notes:
+
+- This is a GitHub Pages site URL, not the GitHub repository page.
+- The Pages build supports direct loads of `/`, `/readme`, and `/codex`.
+- `/codex` is intentionally offline on Pages until a hosted backend bridge exists.
 
 ## Domain Language
 
@@ -164,6 +177,30 @@ The mobile screenshots at the top of this README are refreshed by `npm run test:
 
 `npm run dev` starts the Vite app and the local Codex bridge together. It is designed to be idempotent for local use, so rerunning it cleans up the previous managed dev processes on ports `5174` and `4176` before starting fresh ones.
 
+## GitHub Pages Deploy
+
+The repo includes a GitHub Actions workflow that builds and deploys the static app to GitHub Pages:
+
+- Workflow file: `.github/workflows/deploy-pages.yml`
+- Build command: `npm run build:pages`
+- Static Pages build helper: `scripts/build-pages.mjs`
+
+What the workflow does:
+
+1. Runs on pushes to `master` and on manual workflow dispatch.
+2. Installs dependencies with `npm ci`.
+3. Builds the site with the repo base path `/guitar-tabs/`.
+4. Forces `VITE_CODEX_OFFLINE=1` for the Pages build so `/codex` renders an offline terminal instead of trying to reach a local bridge.
+5. Publishes the `dist/` folder to GitHub Pages.
+
+One-time GitHub setup:
+
+1. Open repo `Settings`.
+2. Open `Pages`.
+3. Set the source to `GitHub Actions`.
+
+After the workflow finishes, the site should be available at `https://timcash.github.io/guitar-tabs/`.
+
 ## `/codex` Page
 
 `/codex` is a browser terminal for the real local Codex CLI.
@@ -181,3 +218,4 @@ Notes:
 - It uses the local Codex credentials already available on the machine.
 - It runs the local CLI in dangerous local mode right now, so it is intended for local development only.
 - The route is designed to feel like the CLI TUI inside the browser, not a reimplementation of Codex behavior.
+- In the GitHub Pages build, this route shows an `OFFLINE` terminal because there is no hosted Codex bridge yet.
