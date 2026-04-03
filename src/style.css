@@ -1,70 +1,71 @@
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   color-scheme: dark;
-  background-color: #050505;
+  background-color: #000;
 }
 
 body {
   margin: 0;
+  min-height: 100svh;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  background: #000;
+}
+
+body.readme-route {
+  min-height: 100vh;
+  height: auto;
+  overflow: auto;
+  background: #000;
+}
+
+body.codex-route {
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
 }
 
 #app {
   width: 100%;
+  min-height: 100svh;
   height: 100vh;
-  display: grid;
-  grid-template-columns: 350px 1fr;
-  gap: 20px;
-  padding: 20px;
+  display: block;
+  padding: 0;
   box-sizing: border-box;
+  background: #000;
 }
 
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  background: #111;
-  padding: 20px;
-  border-radius: 20px;
-  overflow-y: auto;
+#app.readme-preview-root {
+  display: block;
+  height: auto;
+  min-height: 100vh;
+  padding: 0;
 }
 
-.lyrics-container {
-  background: #1a1a1a;
-  border-radius: 16px;
-  border-left: 8px solid #ff9800;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 20px;
-  min-height: 150px;
+#app.codex-route-root {
+  display: block;
+  min-height: 100svh;
+  height: 100vh;
+  padding: 0;
 }
 
-.lyrics-main {
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: #fff;
-  margin: 0;
-}
-
-.lyrics-sub {
-  font-size: 0.9rem;
-  color: #666;
-  margin-top: 5px;
-}
-
-/* Vertical Fretboard Container */
-.fretboard-container {
-  display: flex;
-  flex-direction: column;
-  background: #0a0a0a;
-  border-radius: 24px;
-  border: 2px solid #222;
-  overflow: hidden;
+.player-shell {
   position: relative;
-  height: 100%;
+  width: 100%;
+  min-height: 100svh;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+}
+
+.fretboard-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  overflow: hidden;
 }
 
 #svgContainer {
@@ -75,49 +76,355 @@ body {
   align-items: center;
 }
 
-.controls-column {
+.player-stage-overlay {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  justify-content: space-between;
+  gap: 10px;
+  padding:
+    max(10px, env(safe-area-inset-top))
+    max(10px, env(safe-area-inset-right))
+    max(10px, env(safe-area-inset-bottom))
+    max(10px, env(safe-area-inset-left));
+  box-sizing: border-box;
+  pointer-events: none;
 }
 
-.btn-group {
+.player-top-copy {
+  display: flex;
+  justify-content: center;
+}
+
+.lyrics-container {
+  width: 100%;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.74), rgba(0, 0, 0, 0));
+}
+
+.lyrics-main {
+  font-size: clamp(1.05rem, 4.8vw, 1.5rem);
+  font-weight: 900;
+  color: #fff;
+  margin: 0;
+  text-align: center;
+}
+
+.lyrics-sub {
+  font-size: 0.88rem;
+  color: #a7a7a7;
+  margin: 6px 0 0;
+  text-align: center;
+}
+
+.player-bottom-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
   gap: 10px;
+  width: 100%;
+  pointer-events: auto;
+  align-items: end;
 }
 
 button {
   width: 100%;
-  background: #222;
+  background: rgba(18, 18, 18, 0.95);
   color: white;
   border: none;
-  padding: 12px;
-  border-radius: 10px;
-  font-weight: bold;
+  min-height: 60px;
+  padding: 14px 16px;
+  border-radius: 0;
+  font-weight: 800;
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.2s;
+  touch-action: manipulation;
 }
 
-.song-control {
+#playBtn {
+  background: #ffffff;
+  color: #000000;
+}
+
+.menu-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  background: rgba(0, 0, 0, 0.98);
+  z-index: 20;
+}
+
+.player-shell.menu-open .menu-overlay {
+  display: block;
+}
+
+.player-shell.menu-open .player-stage-overlay {
+  visibility: hidden;
+}
+
+.menu-panel {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: #1a1a1a;
-  padding: 15px;
-  border-radius: 12px;
 }
 
-.tempo-control {
+.menu-toolbar {
+  display: flex;
+  justify-content: end;
+  padding:
+    max(10px, env(safe-area-inset-top))
+    max(10px, env(safe-area-inset-right))
+    0
+    max(10px, env(safe-area-inset-left));
+}
+
+.menu-scroll {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding:
+    10px
+    max(10px, env(safe-area-inset-right))
+    max(18px, env(safe-area-inset-bottom))
+    max(10px, env(safe-area-inset-left));
+  box-sizing: border-box;
+}
+
+.menu-group {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: #1a1a1a;
-  padding: 15px;
-  border-radius: 12px;
+}
+
+.btn-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #d8d8d8;
+}
+
+select {
+  width: 100%;
+  min-height: 60px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 0;
+  background: #101010;
+  color: #fff;
+  font: inherit;
 }
 
 input[type="range"] {
   width: 100%;
+  accent-color: #fff;
+}
+
+button:focus-visible,
+select:focus-visible,
+input[type="range"]:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.markdown-body {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  line-height: 1.7;
+  color: #cfcfcf;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  line-height: 1.15;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+
+.markdown-body h1:first-child,
+.markdown-body h2:first-child,
+.markdown-body h3:first-child {
+  margin-top: 0;
+}
+
+.markdown-body h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.markdown-body h2 {
+  font-size: 1.65rem;
+}
+
+.markdown-body h3 {
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body pre,
+.markdown-body blockquote,
+.markdown-body table {
+  margin-top: 0;
+  margin-bottom: 1.1em;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.5em;
+}
+
+.markdown-body li + li {
+  margin-top: 0.3em;
+}
+
+.markdown-body a {
+  color: #fff;
+}
+
+.markdown-body code {
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  background: #111;
+  border-radius: 6px;
+  padding: 0.15em 0.35em;
+}
+
+.markdown-body pre {
+  overflow-x: auto;
+  padding: 16px 18px;
+  background: #050505;
+}
+
+.markdown-body pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.markdown-body blockquote {
+  margin-left: 0;
+  padding: 0.2em 1em;
+  color: #bfbfbf;
+}
+
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.markdown-body th,
+.markdown-body td {
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.markdown-body th {
+  background: #111;
+}
+
+.markdown-body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+  background: #000;
+}
+
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid #222;
+  margin: 2em 0;
+}
+
+.codex-shell {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+}
+
+.codex-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding:
+    10px
+    calc(env(safe-area-inset-right) + 10px)
+    calc(env(safe-area-inset-bottom) + 10px)
+    calc(env(safe-area-inset-left) + 10px);
+  background: #050505;
+}
+
+.codex-action-btn {
+  min-height: 58px;
+  padding: 14px 12px;
+  border-radius: 16px;
+  background: #111;
+  color: #fff;
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.codex-terminal-surface {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  min-height: 0;
+  background: #000;
+}
+
+.xterm {
+  height: 100%;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.xterm-viewport {
+  border-radius: 0;
+}
+
+@media (min-width: 720px) {
+  .player-bottom-bar {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  .menu-scroll {
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .btn-group {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .codex-actions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }

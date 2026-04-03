@@ -10,10 +10,10 @@ import (
 )
 
 type viewCapture struct {
-	Name        string
-	CameraTaps  int
+	Name          string
+	OpenMenu      bool
 	StartPlayback bool
-	Wait        time.Duration
+	Wait          time.Duration
 }
 
 func main() {
@@ -38,29 +38,30 @@ func main() {
 	defer cancel()
 
 	captures := []viewCapture{
-		{Name: "classic-overview", CameraTaps: 0, StartPlayback: false, Wait: 500 * time.Millisecond},
-		{Name: "player-playback", CameraTaps: 1, StartPlayback: true, Wait: 1200 * time.Millisecond},
-		{Name: "birdseye-overview", CameraTaps: 2, StartPlayback: false, Wait: 500 * time.Millisecond},
-		{Name: "cinematic-playback", CameraTaps: 3, StartPlayback: true, Wait: 1200 * time.Millisecond},
+		{Name: "mobile-player", OpenMenu: false, StartPlayback: true, Wait: 1400 * time.Millisecond},
+		{Name: "mobile-menu", OpenMenu: true, StartPlayback: false, Wait: 500 * time.Millisecond},
 	}
 
 	for _, capture := range captures {
 		var screenshot []byte
 
 		actions := []chromedp.Action{
-			chromedp.Navigate("http://127.0.0.1:5174/"),
+			chromedp.EmulateViewport(430, 932),
+			chromedp.Navigate("http://localhost:5174/"),
 			chromedp.WaitVisible("#playBtn", chromedp.ByID),
-			chromedp.WaitVisible("#cameraBtn", chromedp.ByID),
-			chromedp.EmulateViewport(1440, 900),
-			chromedp.Sleep(1200 * time.Millisecond),
-		}
-
-		for i := 0; i < capture.CameraTaps; i++ {
-			actions = append(actions, chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(250*time.Millisecond))
+			chromedp.WaitVisible("#menuBtn", chromedp.ByID),
+			chromedp.Sleep(900 * time.Millisecond),
 		}
 
 		if capture.StartPlayback {
-			actions = append(actions, chromedp.Click("#playBtn", chromedp.ByID))
+			actions = append(actions, chromedp.Click("#playBtn", chromedp.ByID), chromedp.Sleep(250*time.Millisecond))
+		}
+
+		if capture.OpenMenu {
+			actions = append(actions,
+				chromedp.Click("#menuBtn", chromedp.ByID),
+				chromedp.WaitVisible("#menuCloseBtn", chromedp.ByID),
+			)
 		}
 
 		actions = append(actions,

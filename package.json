@@ -5,17 +5,25 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:bridge": "tsx watch server/index.ts",
+    "dev:codex": "concurrently -k -n bridge,web -c green,blue \"npm run dev:bridge\" \"npm run dev\"",
     "capture:screenshots": "cd tests && go run capture_views.go",
     "test": "vitest run",
     "test:view": "vitest run src/viewFraming.test.ts src/viewFraming.report.test.ts",
     "test:hand": "vitest run src/handGeometry.test.ts",
-    "test:ui": "cd tests && go run .",
-    "test:ui:headed": "cd tests && HEADED=1 go run .",
+    "test:ui": "cd tests && go run main.go",
+    "test:ui:headed": "cd tests && HEADED=1 go run main.go",
     "test:all": "npm run test && npm run test:ui",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "typecheck:server": "tsc -p tsconfig.server.json",
+    "build": "npm run typecheck:server && tsc && vite build",
+    "preview": "vite preview",
+    "preview:codex": "npm run build && tsx server/index.ts"
   },
   "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/ws": "^8.18.1",
+    "concurrently": "^9.2.1",
+    "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "vite": "^8.0.0-beta.13",
     "vitest": "^4.0.18"
@@ -25,6 +33,11 @@
   },
   "dependencies": {
     "@types/three": "^0.183.1",
-    "three": "^0.183.2"
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
+    "marked": "^17.0.5",
+    "node-pty": "^1.0.0",
+    "three": "^0.183.2",
+    "ws": "^8.18.3"
   }
 }

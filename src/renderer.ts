@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import type { ChordDefinition, FallingNote } from './types';
 import { VirtualHand } from './virtualHand';
-import { getNoteLabel } from './audio';
 import { ChordDisplay3D } from './chordDisplay3D';
+import { noteNameService } from './audio/NoteNameService';
+import { CAMERA_FOV_DEGREES, CAMERA_VIEWS } from './viewFraming';
 
 /**
  * Handles all 3D visualization of the guitar fretboard, strings, and falling notes.
@@ -13,7 +14,7 @@ export class FretboardRenderer {
   private renderer: THREE.WebGLRenderer;
   private strings!: THREE.Group;
   private fretLines!: THREE.Group;
-  private activeNoteMeshes: Map<number, THREE.Mesh> = new Map();
+  private activeNoteLabels: Map<number, THREE.Sprite> = new Map();
   private particles: THREE.Points[] = [];
   private leftHandMarkers: THREE.Group; // Visual indicators for chord fingerings
   private rightHandMarkers: THREE.Group; // Visual indicators for string plucking
@@ -32,12 +33,11 @@ export class FretboardRenderer {
   private readonly bridgeZ = 8; // Pluck zone
 
   private currentViewIndex = 0;
-  private cameraViews = [
-    { name: 'Classic', pos: new THREE.Vector3(0, 12, 18), look: new THREE.Vector3(0, 0, -2) },
-    { name: 'Player', pos: new THREE.Vector3(0, 5, 15), look: new THREE.Vector3(0, 1, -10) },
-    { name: 'Birdseye', pos: new THREE.Vector3(0, 25, 0), look: new THREE.Vector3(0, 0, 0) },
-    { name: 'Cinematic', pos: new THREE.Vector3(15, 8, 10), look: new THREE.Vector3(-5, 0, -5) }
-  ];
+  private readonly cameraViews = CAMERA_VIEWS.map((view) => ({
+    name: view.name,
+    pos: new THREE.Vector3(...view.pos),
+    look: new THREE.Vector3(...view.look)
+  }));
 
   constructor(container: HTMLElement) {
     this.width = container.clientWidth;
@@ -46,7 +46,7 @@ export class FretboardRenderer {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0a0a0a);
 
-    this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1, 1000);
+    this.camera = new THREE.PerspectiveCamera(CAMERA_FOV_DEGREES, this.width / this.height, 0.1, 1000);
     this.applyCameraView();
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -176,7 +176,7 @@ export class FretboardRenderer {
     chord.voicing.forEach(pos => {
       const x = this.getStringX(pos.string);
       const z = this.getFretZ(pos.fret);
-      const noteLabel = getNoteLabel(pos.string, pos.fret);
+      const noteLabel = noteNameService.getNoteLabel(pos.string, pos.fret);
       
       const marker = new THREE.Mesh(
         new THREE.SphereGeometry(0.5, 32, 32),
@@ -215,29 +215,65 @@ export class FretboardRenderer {
     const activeIds = new Set(fallingNotes.map(n => n.hitTime));
     
     // Cleanup expired notes
-    for (const [id, mesh] of this.activeNoteMeshes.entries()) {
+    for (const [id, sprite] of this.activeNoteLabels.entries()) {
       if (!activeIds.has(id)) {
-        this.scene.remove(mesh);
-        this.activeNoteMeshes.delete(id);
+        this.scene.remove(sprite);
+        this.disposeFallingNoteLabel(sprite);
+        this.activeNoteLabels.delete(id);
       }
     }
 
-    // Add/Update notes in flight
+    // Add/update note labels in flight.
     fallingNotes.forEach(note => {
-      let mesh = this.activeNoteMeshes.get(note.hitTime);
+      let sprite = this.activeNoteLabels.get(note.hitTime);
       const x = this.getStringX(note.stringNum);
-      if (!mesh) {
-        mesh = new THREE.Mesh(
-          new THREE.IcosahedronGeometry(0.4, 1),
-          new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5, transparent: true })
-        );
-        this.scene.add(mesh);
-        this.activeNoteMeshes.set(note.hitTime, mesh);
+      if (!sprite) {
+        sprite = this.createFallingNoteLabel(note.noteName);
+        this.scene.add(sprite);
+        this.activeNoteLabels.set(note.hitTime, sprite);
       }
-      mesh.position.set(x, 0.5, note.z_3d);
-      mesh.rotation.y += 0.05;
-      (mesh.material as THREE.MeshPhongMaterial).opacity = note.opacity;
+      sprite.position.set(x, 0.95, note.z_3d);
+      (sprite.material as THREE.SpriteMaterial).opacity = note.opacity;
     });
+  }
+
+  private createFallingNoteLabel(text: string) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 108px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+    ctx.shadowBlur = 18;
+    ctx.lineWidth = 14;
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+    ctx.strokeText(text, 256, 138);
+    ctx.fillText(text, 256, 138);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const sprite = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+        depthTest: false
+      })
+    );
+
+    sprite.scale.set(2.2, 1.1, 1);
+    sprite.renderOrder = 3;
+    return sprite;
+  }
+
+  private disposeFallingNoteLabel(sprite: THREE.Sprite) {
+    const material = sprite.material as THREE.SpriteMaterial;
+    material.map?.dispose();
+    material.dispose();
   }
 
   private updateParticlesAndLabels() {

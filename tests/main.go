@@ -13,6 +13,11 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
+const (
+	baseURL                = "http://localhost:5174"
+	codexRoutePromptBase64 = "L3N0YXR1cw=="
+)
+
 func main() {
 	headed := os.Getenv("HEADED") == "1"
 
@@ -52,20 +57,24 @@ func main() {
 	}
 
 	var stateSamples []testState
+	var viewportMetaContent string
+	var readmeImageCount int
+	var readmeScrollY float64
+	var codexActionCount int
+	var codexTerminalCount int
+	var songChanged bool
+	var tempoChanged bool
+	var menuOpened bool
+	var menuClosed bool
 
 	err := chromedp.Run(ctx,
-		chromedp.Navigate("http://localhost:5174/"),
+		chromedp.EmulateViewport(390, 844),
+		chromedp.Navigate(baseURL+"/"),
 		chromedp.WaitVisible("#playBtn", chromedp.ByID),
-		chromedp.WaitVisible("#cameraBtn", chromedp.ByID),
+		chromedp.WaitVisible("#menuBtn", chromedp.ByID),
+		chromedp.Evaluate(`document.querySelector('meta[name="viewport"]')?.getAttribute('content') ?? ''`, &viewportMetaContent),
 
-		// 1. Cycle through all camera views while stopped
-		fmtAction("Cycling camera views (Stopped)..."),
-		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(200*time.Millisecond),
-		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(200*time.Millisecond),
-		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(200*time.Millisecond),
-		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(200*time.Millisecond),
-
-		// 2. Start playback
+		// 1. Start playback from the compact stage UI.
 		fmtAction("Starting playback..."),
 		chromedp.Click("#playBtn", chromedp.ByID),
 		chromedp.Sleep(40*time.Millisecond),
@@ -75,19 +84,47 @@ func main() {
 		chromedp.Sleep(80*time.Millisecond),
 		captureTestState(&stateSamples),
 
-		// 3. Cycle camera views while playing
-		fmtAction("Cycling camera views (Playing)..."),
-		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(500*time.Millisecond),
-		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(500*time.Millisecond),
-		
-		// 4. Exercise Flip and Sound buttons
+		// 2. Open the fullscreen menu and exercise hidden controls.
+		fmtAction("Opening fullscreen menu..."),
+		chromedp.Click("#menuBtn", chromedp.ByID),
+		chromedp.WaitVisible("#cameraBtn", chromedp.ByID),
+		chromedp.Evaluate(`document.querySelector('.player-shell')?.classList.contains('menu-open') ?? false`, &menuOpened),
+		chromedp.Sleep(200*time.Millisecond),
+
+		fmtAction("Changing song and tempo..."),
+		chromedp.Evaluate(`(() => {
+      const select = document.querySelector('#songSelect');
+      if (!(select instanceof HTMLSelectElement) || select.options.length < 2) return false;
+      select.value = '1';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    })()`, &songChanged),
+		chromedp.Sleep(300*time.Millisecond),
+		chromedp.Evaluate(`(() => {
+      const range = document.querySelector('#tempoRange');
+      if (!(range instanceof HTMLInputElement)) return false;
+      range.value = '132';
+      range.dispatchEvent(new Event('input', { bubbles: true }));
+      return range.value === '132';
+    })()`, &tempoChanged),
+		chromedp.Sleep(300*time.Millisecond),
+
+		fmtAction("Cycling camera views from menu..."),
+		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(250*time.Millisecond),
+		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(250*time.Millisecond),
+		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(250*time.Millisecond),
+		chromedp.Click("#cameraBtn", chromedp.ByID), chromedp.Sleep(250*time.Millisecond),
+
+		// 3. Exercise Flip and Sound buttons.
 		fmtAction("Toggling Flip and Sound..."),
 		chromedp.Click("#flipXBtn", chromedp.ByID), chromedp.Sleep(300*time.Millisecond),
 		chromedp.Click("#soundBtn", chromedp.ByID), chromedp.Sleep(300*time.Millisecond),
 		chromedp.Click("#soundBtn", chromedp.ByID), chromedp.Sleep(300*time.Millisecond),
 		chromedp.Click("#flipXBtn", chromedp.ByID), chromedp.Sleep(300*time.Millisecond),
+		chromedp.Click("#menuCloseBtn", chromedp.ByID), chromedp.Sleep(200*time.Millisecond),
+		chromedp.Evaluate(`document.querySelector('.player-shell')?.classList.contains('menu-open') ?? false`, &menuClosed),
 
-		// 5. Pause and Resume
+		// 4. Pause and resume.
 		fmtAction("Pausing..."),
 		chromedp.Click("#playBtn", chromedp.ByID),
 		chromedp.Sleep(500*time.Millisecond),
@@ -95,13 +132,40 @@ func main() {
 		chromedp.Click("#playBtn", chromedp.ByID),
 		chromedp.Sleep(1*time.Second),
 
-		// 6. Reset
+		// 5. Reset from menu.
 		fmtAction("Resetting..."),
+		chromedp.Click("#menuBtn", chromedp.ByID),
+		chromedp.WaitVisible("#resetBtn", chromedp.ByID),
 		chromedp.Click("#resetBtn", chromedp.ByID),
 		chromedp.Sleep(500*time.Millisecond),
+		chromedp.Click("#menuCloseBtn", chromedp.ByID),
+		chromedp.Sleep(200*time.Millisecond),
 
-		// Final safety wait
-		chromedp.Sleep(1*time.Second),
+		// 6. Exercise the README route with a simple scroll interaction.
+		fmtAction("Opening /readme..."),
+		chromedp.Navigate(baseURL+"/readme"),
+		chromedp.WaitVisible(".markdown-body", chromedp.ByQuery),
+		chromedp.Sleep(300*time.Millisecond),
+		chromedp.Evaluate(`document.querySelectorAll('.markdown-body img').length`, &readmeImageCount),
+		chromedp.Evaluate(`window.scrollTo(0, document.body.scrollHeight)`, nil),
+		chromedp.Sleep(250*time.Millisecond),
+		chromedp.Evaluate(`window.scrollY`, &readmeScrollY),
+
+		// 7. Exercise the Codex route with button interactions.
+		fmtAction("Opening /codex..."),
+		chromedp.Navigate(baseURL+"/codex?prompt="+codexRoutePromptBase64),
+		chromedp.WaitVisible(".xterm", chromedp.ByQuery),
+		chromedp.WaitVisible("[data-codex-restart]", chromedp.ByQuery),
+		chromedp.Sleep(1500*time.Millisecond),
+		chromedp.Click("[data-codex-clear]", chromedp.ByQuery),
+		chromedp.Sleep(250*time.Millisecond),
+		chromedp.Click("[data-codex-restart]", chromedp.ByQuery),
+		chromedp.Sleep(1000*time.Millisecond),
+		chromedp.Evaluate(`document.querySelectorAll('.codex-action-btn').length`, &codexActionCount),
+		chromedp.Evaluate(`document.querySelectorAll('.xterm').length`, &codexTerminalCount),
+
+		// Final safety wait.
+		chromedp.Sleep(500*time.Millisecond),
 	)
 
 	if err != nil {
@@ -136,9 +200,48 @@ func main() {
 		log.Fatal("TEST FAILED: did not observe a valid hand/finger runtime state sample")
 	}
 
+	if !strings.Contains(viewportMetaContent, "viewport-fit=cover") || !strings.Contains(viewportMetaContent, "interactive-widget=resizes-content") {
+		log.Fatalf("TEST FAILED: viewport meta missing mobile settings: %q", viewportMetaContent)
+	}
+
+	if !songChanged {
+		log.Fatal("TEST FAILED: expected player menu song selector to change songs")
+	}
+
+	if !tempoChanged {
+		log.Fatal("TEST FAILED: expected player tempo slider to update from the fullscreen menu")
+	}
+
+	if !menuOpened {
+		log.Fatal("TEST FAILED: expected the player fullscreen menu to open")
+	}
+
+	if menuClosed {
+		log.Fatal("TEST FAILED: expected the player fullscreen menu to close after tapping CLOSE")
+	}
+
+	if readmeImageCount < 1 {
+		log.Fatalf("TEST FAILED: expected README preview to render at least 1 image, got %d", readmeImageCount)
+	}
+
+	if readmeScrollY <= 0 {
+		log.Fatalf("TEST FAILED: expected README route to scroll, got scrollY=%0.0f", readmeScrollY)
+	}
+
+	if codexActionCount < 4 {
+		log.Fatalf("TEST FAILED: expected Codex route to render 4 action buttons, got %d", codexActionCount)
+	}
+
+	if codexTerminalCount < 1 {
+		log.Fatalf("TEST FAILED: expected Codex route to mount an xterm surface, got %d", codexTerminalCount)
+	}
+
 	fmt.Println("\nSUCCESS: All UI elements and camera views exercised without errors!")
 	fmt.Printf("Validated note geometry samples: %v\n", geomZSamples[:3])
 	fmt.Printf("Validated hand runtime samples: %v\n", summarizeHandSamples(stateSamples))
+	fmt.Printf("Validated player mobile menu: viewport=%q opened=%t closed=%t songChanged=%t tempoChanged=%t\n", viewportMetaContent, menuOpened, !menuClosed, songChanged, tempoChanged)
+	fmt.Printf("Validated README route: images=%d scrollY=%.0f\n", readmeImageCount, readmeScrollY)
+	fmt.Printf("Validated Codex route: buttons=%d xterm=%d\n", codexActionCount, codexTerminalCount)
 }
 
 func fmtAction(msg string) chromedp.Action {
@@ -158,12 +261,12 @@ func isStrictlyIncreasing(values []float64) bool {
 }
 
 type handState struct {
-	Finger   *string  `json:"finger"`
-	String   *int     `json:"stringNum"`
-	X        *float64 `json:"x"`
-	Y        *float64 `json:"y"`
-	Z        *float64 `json:"z"`
-	Curl     *float64 `json:"curl"`
+	Finger *string  `json:"finger"`
+	String *int     `json:"stringNum"`
+	X      *float64 `json:"x"`
+	Y      *float64 `json:"y"`
+	Z      *float64 `json:"z"`
+	Curl   *float64 `json:"curl"`
 }
 
 type testState struct {

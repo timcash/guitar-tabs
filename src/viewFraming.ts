@@ -35,10 +35,10 @@ export interface FramingReportRow {
 
 export const CAMERA_FOV_DEGREES = 75;
 export const CAMERA_VIEWS: CameraViewSpec[] = [
-  { name: 'Classic', pos: [0, 12, 18], look: [0, 0, -2] },
-  { name: 'Player', pos: [0, 5, 15], look: [0, 1, -10] },
-  { name: 'Birdseye', pos: [0, 25, 0], look: [0, 0, 0] },
-  { name: 'Cinematic', pos: [15, 8, 10], look: [-5, 0, -5] }
+  { name: 'Classic', pos: [0, 13, 20], look: [0, 0.2, -2] },
+  { name: 'Player', pos: [0, 6, 17], look: [0, 1, -9] },
+  { name: 'Birdseye', pos: [0, 28, 0], look: [0, 0, -1] },
+  { name: 'Cinematic', pos: [17, 9, 12], look: [-4, 0.4, -5] }
 ];
 
 export const SCENE_LAYOUT = {
