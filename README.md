@@ -14,9 +14,12 @@ Mobile-first 3D guitar practice player with a built-in Codex terminal.
 
 - `/`
   - Mobile guitar player
+  - The `playback-note-circle-ui` wraps the guitar and lights the note that was just plucked
   - Open `MENU` and use `ADD TO HOME SCREEN` for install help or the native browser install prompt
 - `/readme`
   - Padded markdown preview of this README
+- `/music`
+  - Live `music-note-circle-ui` that listens to the microphone and highlights the detected note around a circle of fifths
 - `/codex`
   - Full-page `xterm.js` terminal connected to the local Codex CLI
   - In the static GitHub Pages build, this route shows `OFFLINE`
@@ -31,6 +34,7 @@ Notes:
 
 - This is a GitHub Pages site URL, not the GitHub repository page.
 - The Pages build supports direct loads of `/`, `/readme`, and `/codex`.
+- The Pages build supports direct loads of `/`, `/readme`, `/music`, and `/codex`.
 - `/codex` is intentionally offline on Pages until a hosted backend bridge exists.
 
 ## Install As An App
@@ -60,10 +64,16 @@ Use these names when reading or changing the system:
   - Active and incoming chord display
 - `lyrics-panel-ui`
   - The words shown over the guitar
+- `playback-note-circle-ui`
+  - Circle-of-fifths ring around the guitar that lights the plucked note
 - `menu-ui`
   - Fullscreen mobile control menu
 - `readme-preview-ui`
   - Markdown route used to read this README in the browser
+- `music-note-circle-ui`
+  - Full-page note listener route for live microphone input
+- `circle-of-fifths-ring`
+  - Twelve note nodes arranged in circle-of-fifths order
 - `codex-terminal-ui`
   - Browser terminal route backed by `xterm.js`
 - `codex-bridge`
@@ -72,6 +82,8 @@ Use these names when reading or changing the system:
   - Play, pause, reset, elapsed time
 - `audio-pluck`
   - Web Audio pluck synthesis
+- `microphone-note-analyzer`
+  - Web Audio microphone analysis that estimates pitch and pitch-class energy
 - `pluck-burst-effects`
   - Bridge-hit particles and floating note pop labels
 - `runtime-test-bridge`
@@ -85,10 +97,11 @@ Use these names when reading or changing the system:
 2. The `chord-timeline` becomes a `sliding-note-sequence` of string plucks.
 3. Each note becomes a `sliding-note` label that moves down one string toward the `pluck-zone`.
 4. When a note reaches the bridge, the `audio-pluck` engine plays it and the `picking-fingers` animate the pluck.
-5. The active chord updates the `chord-fingers` on the fret-board.
-6. The `next-chord-display` shows what chord is active now and what is coming next.
-7. The main stage stays minimal: lyrics plus `START/PAUSE` and `MENU`.
-8. The fullscreen `menu-ui` holds song selection, tempo, reset, sound, flip, and camera controls.
+5. The `playback-note-circle-ui` lights the circle-of-fifths note that was just played.
+6. The active chord updates the `chord-fingers` on the fret-board.
+7. The `next-chord-display` shows what chord is active now and what is coming next.
+8. The main stage stays minimal: lyrics, the `playback-note-circle-ui`, `START/PAUSE`, and `MENU`.
+9. The fullscreen `menu-ui` holds song selection, tempo, reset, sound, flip, and camera controls.
 
 ## Render And Audio Reuse
 
@@ -105,6 +118,14 @@ Use these names when reading or changing the system:
 3. Read the lyric line at the top while the `sliding-notes` move toward the bridge.
 4. Open `MENU` when you want to change song, tempo, sound, left/right flip, or camera view.
 5. Tap `RESET` from the menu to restart the current song.
+
+## How To Use The Note Circle
+
+1. Open `/music`.
+2. Tap `ENABLE MIC`.
+3. Allow microphone access.
+4. Play one clear note close to the phone or laptop microphone.
+5. Watch the `circle-of-fifths-ring` brighten around the active pitch class and read the detected note in the center.
 
 ## Install As An App
 
@@ -157,6 +178,12 @@ src/
     CodexTerminalView.ts
     CodexRouteState.ts
     CodexTerminalClient.ts
+  music/
+    MicrophoneNoteAnalyzer.ts
+    MusicNoteCirclePage.ts
+    MusicNoteCircleView.ts
+    PlaybackNoteCircleOverlay.ts
+    musicTheory.ts
   domain/
     session/
       SongSession.ts
@@ -209,11 +236,15 @@ The browser smoke test covers all user-facing pages:
 
 - `/`
   - Starts playback
+  - Verifies the `playback-note-circle-ui` renders 12 notes and lights an active note during playback
   - Opens and closes the fullscreen menu
   - Changes song and tempo
   - Toggles camera, sound, and left/right flip
 - `/readme`
   - Verifies the markdown page renders images and scrolls
+- `/music`
+  - Verifies the note circle renders 12 circle-of-fifths nodes
+  - Verifies the microphone route enters a listening state
 - `/codex`
   - Verifies `xterm.js` mounts
   - Verifies the action buttons work

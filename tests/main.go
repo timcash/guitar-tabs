@@ -26,6 +26,8 @@ func main() {
 	allocOpts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.Flag("headless", !headed),
 		chromedp.Flag("disable-gpu", false),
+		chromedp.Flag("use-fake-ui-for-media-stream", true),
+		chromedp.Flag("use-fake-device-for-media-stream", true),
 	)
 
 	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), allocOpts...)
@@ -70,8 +72,13 @@ func main() {
 	var manifestHref string
 	var appleTouchIconHref string
 	var appleWebAppCapable string
+	var playerNoteNodeCount int
+	var playerActiveNoteNodeCount int
 	var readmeImageCount int
 	var readmeScrollY float64
+	var musicNoteNodeCount int
+	var musicStatusCopy string
+	var musicButtonCopy string
 	var codexActionCount int
 	var codexTerminalCount int
 	var githubPagesTitle string
@@ -106,6 +113,8 @@ func main() {
 		captureTestState(&stateSamples),
 		chromedp.Sleep(80*time.Millisecond),
 		captureTestState(&stateSamples),
+		chromedp.Evaluate(`document.querySelectorAll('[data-player-note-node]').length`, &playerNoteNodeCount),
+		chromedp.Evaluate(`document.querySelectorAll('[data-player-note-node][data-active="true"]').length`, &playerActiveNoteNodeCount),
 		captureViewportScreenshot(filepath.Join(screenshotDir, "mobile-player.png")),
 
 		// 2. Open the fullscreen menu and exercise hidden controls.
@@ -186,7 +195,17 @@ func main() {
 		clickElement("#menuCloseBtn"),
 		chromedp.Sleep(150*time.Millisecond),
 
-		// 7. Exercise the Codex route and capture the terminal view before loading the README.
+		// 7. Exercise the live microphone note circle route.
+		fmtAction("Opening /music..."),
+		chromedp.Navigate(baseURL+"/music"),
+		chromedp.WaitVisible("#musicMicBtn", chromedp.ByID),
+		chromedp.Evaluate(`document.querySelectorAll('[data-note-node]').length`, &musicNoteNodeCount),
+		chromedp.Click("#musicMicBtn", chromedp.ByID),
+		chromedp.Sleep(1200*time.Millisecond),
+		chromedp.Evaluate(`document.querySelector('[data-music-status]')?.textContent ?? ''`, &musicStatusCopy),
+		chromedp.Evaluate(`document.querySelector('#musicMicBtn')?.textContent ?? ''`, &musicButtonCopy),
+
+		// 8. Exercise the Codex route and capture the terminal view before loading the README.
 		fmtAction("Opening /codex..."),
 		chromedp.Navigate(baseURL+"/codex?prompt="+codexRoutePromptBase64),
 		chromedp.WaitVisible(".xterm", chromedp.ByQuery),
@@ -200,7 +219,7 @@ func main() {
 		chromedp.Evaluate(`document.querySelectorAll('.codex-action-btn').length`, &codexActionCount),
 		chromedp.Evaluate(`document.querySelectorAll('.xterm').length`, &codexTerminalCount),
 
-		// 8. Exercise the README route with a simple scroll interaction.
+		// 9. Exercise the README route with a simple scroll interaction.
 		fmtAction("Opening /readme..."),
 		chromedp.Navigate(baseURL+"/readme"),
 		chromedp.WaitVisible(".markdown-body", chromedp.ByQuery),
@@ -210,7 +229,7 @@ func main() {
 		chromedp.Sleep(250*time.Millisecond),
 		chromedp.Evaluate(`window.scrollY`, &readmeScrollY),
 
-		// 9. Verify the live GitHub Pages site loads the static guitar app.
+		// 10. Verify the live GitHub Pages site loads the static guitar app.
 		fmtAction("Checking live GitHub Pages site..."),
 		chromedp.Navigate(githubPagesURL),
 		chromedp.WaitVisible("#playBtn", chromedp.ByID),
@@ -279,6 +298,14 @@ func main() {
 		log.Fatalf("TEST FAILED: expected apple-mobile-web-app-capable=yes, got %q", appleWebAppCapable)
 	}
 
+	if playerNoteNodeCount != 12 {
+		log.Fatalf("TEST FAILED: expected player route to render 12 playback note nodes, got %d", playerNoteNodeCount)
+	}
+
+	if playerActiveNoteNodeCount < 1 {
+		log.Fatalf("TEST FAILED: expected player route to light at least one playback note, got %d", playerActiveNoteNodeCount)
+	}
+
 	if !songChanged {
 		log.Fatal("TEST FAILED: expected player menu song selector to change songs")
 	}
@@ -309,6 +336,18 @@ func main() {
 
 	if readmeScrollY <= 0 {
 		log.Fatalf("TEST FAILED: expected README route to scroll, got scrollY=%0.0f", readmeScrollY)
+	}
+
+	if musicNoteNodeCount != 12 {
+		log.Fatalf("TEST FAILED: expected /music to render 12 note nodes, got %d", musicNoteNodeCount)
+	}
+
+	if !strings.Contains(strings.ToLower(musicStatusCopy), "listening") {
+		log.Fatalf("TEST FAILED: expected /music to enter listening state, got %q", musicStatusCopy)
+	}
+
+	if !strings.Contains(strings.ToLower(musicButtonCopy), "live") {
+		log.Fatalf("TEST FAILED: expected /music mic button to show live state, got %q", musicButtonCopy)
 	}
 
 	if codexActionCount < 4 {
@@ -348,6 +387,8 @@ func main() {
 	fmt.Printf("Validated hand runtime samples: %v\n", summarizeHandSamples(stateSamples))
 	fmt.Printf("Validated player mobile menu: viewport=%q opened=%t closed=%t songChanged=%t tempoChanged=%t installHelp=%q\n", viewportMetaContent, menuOpened, !menuStillOpen, songChanged, tempoChanged, installHelpTitle)
 	fmt.Printf("Validated PWA metadata: manifest=%q appleTouchIcon=%q appleWebAppCapable=%q\n", manifestHref, appleTouchIconHref, appleWebAppCapable)
+	fmt.Printf("Validated player note circle: noteNodes=%d activeNodes=%d\n", playerNoteNodeCount, playerActiveNoteNodeCount)
+	fmt.Printf("Validated music route: noteNodes=%d status=%q button=%q\n", musicNoteNodeCount, musicStatusCopy, musicButtonCopy)
 	fmt.Printf("Validated README route: images=%d scrollY=%.0f\n", readmeImageCount, readmeScrollY)
 	fmt.Printf("Validated Codex route: buttons=%d xterm=%d\n", codexActionCount, codexTerminalCount)
 	fmt.Printf(

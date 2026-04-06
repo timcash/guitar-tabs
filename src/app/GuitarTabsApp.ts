@@ -4,6 +4,7 @@ import { chordLibrary, songs } from '../data';
 import { SongSession } from '../domain/session/SongSession';
 import { calculateNoteOpacity, calculateNoteZ, calculateTimeUntilHit } from '../geometry';
 import { getAnimatedFingerPose, getPluckingFingerForString } from '../handGeometry';
+import { NOTE_TO_SEMITONE } from '../music/musicTheory';
 import { PlaybackTransport } from '../playback/PlaybackTransport';
 import { PwaInstallController } from '../pwa/PwaInstallController';
 import { FretboardRenderer } from '../renderer';
@@ -29,6 +30,7 @@ export class GuitarTabsApp {
   private lastTriggeredNoteIndex = -1;
   private lastPluckTimeMs: number | null = null;
   private lastPluckedString: number | null = null;
+  private lastPluckedPitchClass: number | null = null;
 
   constructor(root: HTMLDivElement, pluckEngine: AudioPluckEngine = audioPluckEngine) {
     this.pluckEngine = pluckEngine;
@@ -116,7 +118,9 @@ export class GuitarTabsApp {
     this.lastTriggeredNoteIndex = -1;
     this.lastPluckTimeMs = null;
     this.lastPluckedString = null;
+    this.lastPluckedPitchClass = null;
     this.ui.setPlaybackButtonLabel('START');
+    this.ui.setPlaybackPitchClass(null, 0);
     this.renderCurrentFrame();
   };
 
@@ -168,6 +172,7 @@ export class GuitarTabsApp {
 
     this.logTestState(elapsedTime, slidingNotes, handState);
     this.ui.setLyrics(activeSlidingNote.lyrics, activeSlidingNote.sub);
+    this.ui.setPlaybackPitchClass(this.lastPluckedPitchClass, this.getPlaybackNoteIntensity(elapsedTime));
 
     const activeChordDefinition = chordLibrary[activeChordSegment.chordName];
     this.renderer.renderFrame(
@@ -197,6 +202,7 @@ export class GuitarTabsApp {
     this.renderer.triggerHandPluck(noteToTrigger.stringNum, elapsedTime);
     this.lastPluckTimeMs = elapsedTime;
     this.lastPluckedString = noteToTrigger.stringNum;
+    this.lastPluckedPitchClass = NOTE_TO_SEMITONE[noteToTrigger.noteName] ?? null;
     this.lastTriggeredNoteIndex = globalPluckIndex;
   }
 
@@ -248,6 +254,15 @@ export class GuitarTabsApp {
       z: pose.z,
       curl: pose.curl
     };
+  }
+
+  private getPlaybackNoteIntensity(elapsedTime: number) {
+    if (this.lastPluckedPitchClass === null || this.lastPluckTimeMs === null) {
+      return 0;
+    }
+
+    const ageMs = Math.max(0, elapsedTime - this.lastPluckTimeMs);
+    return Math.max(0, 1 - ageMs / 900);
   }
 
   private logTestState(elapsedTime: number, slidingNotes: FallingNote[], handState: HandTestState) {

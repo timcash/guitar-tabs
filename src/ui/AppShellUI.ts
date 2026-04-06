@@ -1,3 +1,4 @@
+import { PlaybackNoteCircleOverlay } from '../music/PlaybackNoteCircleOverlay';
 import type { SongData } from '../types';
 import type { PwaInstallUiState } from '../pwa/PwaInstallController';
 
@@ -36,6 +37,7 @@ export class AppShellUI {
   private readonly installHelpSteps: HTMLOListElement;
   private readonly installHelpCloseBtn: HTMLButtonElement;
   private readonly fretboardContainer: HTMLDivElement;
+  private readonly playbackNoteCircle: PlaybackNoteCircleOverlay;
 
   constructor(root: HTMLDivElement, songs: SongData[]) {
     this.root = root;
@@ -62,6 +64,9 @@ export class AppShellUI {
     this.installHelpSteps = this.root.querySelector<HTMLOListElement>('#installHelpSteps')!;
     this.installHelpCloseBtn = this.root.querySelector<HTMLButtonElement>('#installHelpCloseBtn')!;
     this.fretboardContainer = this.root.querySelector<HTMLDivElement>('#fretboardContainer')!;
+    this.playbackNoteCircle = new PlaybackNoteCircleOverlay(
+      this.root.querySelector<HTMLDivElement>('#playerNoteCircleOverlay')!
+    );
 
     this.menuBtn.addEventListener('click', this.openMenu);
     this.menuCloseBtn.addEventListener('click', this.closeMenu);
@@ -114,6 +119,10 @@ export class AppShellUI {
     this.lyricSub.textContent = sub;
   }
 
+  public setPlaybackPitchClass(pitchClass: number | null, intensity: number) {
+    this.playbackNoteCircle.setActivePitchClass(pitchClass, intensity);
+  }
+
   public setInstallUiState(state: PwaInstallUiState) {
     this.installBtn.textContent = state.buttonLabel;
     this.installBtn.disabled = state.buttonDisabled;
@@ -149,6 +158,7 @@ export class AppShellUI {
     return `
       <div class="player-shell">
         <div class="fretboard-container" id="fretboardContainer"></div>
+        <div class="player-note-circle-overlay" id="playerNoteCircleOverlay" aria-hidden="true"></div>
 
         <div class="player-stage-overlay">
           <div class="player-top-copy">
